@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "name": "Прямоугольный карман",
+  "kind": "milling",
+  "source": "G21 G17 G90 G54\nT1 M6\nS1600 M3\nG0 X25 Y15 Z5\nG1 Z-4 F80\nG1 X35 F180\nY20\nX25\nY25\nX35\nG0 Z10\nM5\nM30",
+  "offset": {
+    "x": 0,
+    "y": 0,
+    "z": 0
+  },
+  "resolution": 0.25
+}

@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "name": "Обработка плоскости",
+  "kind": "milling",
+  "source": "G21 G17 G90 G54\nT1 M6\nS1600 M3\nG0 X-8 Y0 Z5\nG1 Z-2 F100\nG1 X68 F250\nY8\nX-8\nY16\nX68\nY24\nX-8\nY32\nX68\nY40\nX-8\nG0 Z10\nM5\nM30",
+  "offset": {
+    "x": 0,
+    "y": 0,
+    "z": 0
+  },
+  "resolution": 0.25
+}

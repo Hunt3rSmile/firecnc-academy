@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+project_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+"$project_dir/bin/package-omarchy"
+cd "$project_dir/pkgbuild"
+mapfile -t packages < <(makepkg --packagelist)
+if [[ ${#packages[@]} -ne 1 ]]; then
+  printf '%s\n' 'Ожидается один пакет FireCNC Academy.' >&2
+  exit 1
+fi
+if [[ -t 0 && -t 1 ]]; then
+  sudo pacman -U --noconfirm --needed -- "${packages[0]}"
+else
+  pkexec pacman -U --noconfirm --needed -- "${packages[0]}"
+fi

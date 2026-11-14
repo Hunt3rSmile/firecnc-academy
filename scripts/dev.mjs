@@ -1,0 +1,11 @@
+import {spawn} from 'node:child_process';
+import {existsSync} from 'node:fs';
+import electron from 'electron';
+const args=['scripts/build.mjs','--development'];
+if(existsSync('.local/trusted-keys.json'))args.push('--trust','.local/trusted-keys.json');
+const built=spawn(process.execPath,args,{stdio:'inherit'});
+const code=await new Promise(resolve=>built.once('exit',resolve));
+if(code!==0)process.exit(Number(code));
+const env={...process.env};delete env.ELECTRON_RUN_AS_NODE;
+const app=spawn(electron,['.'],{stdio:'inherit',env});
+app.once('exit',code=>process.exit(code??0));

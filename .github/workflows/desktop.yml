@@ -1,0 +1,113 @@
+name: Desktop builds and releases
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish tested Windows and Linux files as a GitHub Release
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: node scripts/check-publication.mjs
+  build:
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name != 'push'
+    needs: source
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-2025
+            platform: windows
+          - os: ubuntu-22.04
+            platform: linux
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - if: matrix.platform == 'windows'
+        run: npm run test:e2e
+      - if: matrix.platform == 'linux'
+        run: xvfb-run -a npm run test:e2e
+      - if: matrix.platform == 'windows'
+        run: npm run pack:win
+      - if: matrix.platform == 'linux'
+        run: npm run pack:linux
+      - if: matrix.platform == 'windows'
+        run: npm run test:pack
+      - if: matrix.platform == 'windows'
+        run: npm run test:installer
+      - if: matrix.platform == 'linux'
+        run: xvfb-run -a npm run test:pack
+      - run: node scripts/release-artifacts.mjs ${{ matrix.platform }}
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: desktop-${{ matrix.platform }}
+          path: artifacts/${{ matrix.platform }}/
+          if-no-files-found: error
+  release:
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish)
+    needs: build
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24'
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          pattern: desktop-*
+          path: artifacts/release
+          merge-multiple: true
+      - run: node scripts/release-artifacts.mjs checksums artifacts/release
+      - name: Publish tested Windows and Linux downloads
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          REQUESTED_TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          RELEASE_TAG="v$(node -p "require('./package.json').version")"
+          if [[ "$GITHUB_REF_TYPE" == tag && "$REQUESTED_TAG" != "$RELEASE_TAG" ]]; then printf '%s\n' 'Tag/version mismatch' >&2; exit 1; fi
+          notes="docs/releases/${RELEASE_TAG}.md"
+          if [[ ! -f "$notes" ]]; then printf 'FireCNC Academy %s\n\nSee README.md for features and limitations.\n' "$RELEASE_TAG" > /tmp/firecnc-notes.md; notes=/tmp/firecnc-notes.md; fi
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" artifacts/release/* --clobber
+          else
+            extra=()
+            if [[ "$RELEASE_TAG" == *-* ]]; then extra+=(--prerelease); fi
+            gh release create "$RELEASE_TAG" artifacts/release/* --target "$GITHUB_SHA" --title "FireCNC Academy ${RELEASE_TAG}" --notes-file "$notes" "${extra[@]}"
+          fi

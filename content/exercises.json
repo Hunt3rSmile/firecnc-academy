@@ -1,0 +1,329 @@
+[
+  {
+    "id": "turn-shaft",
+    "version": 1,
+    "kind": "turning",
+    "title": "Ступенчатый вал",
+    "goal": "Получите Ø30 на Z−30…0, сохраните Ø40 у крепления. Заготовка Ø40 × 60; зажим 15 мм. Резец 1, ширина 2 мм.",
+    "lesson": "turning-axes",
+    "source": "G21 G18 G90 G54\nT0101\nS800 M3\nG0 X44 Z3\nG1 X30 F100\nG1 Z-30\nG1 X44\nG0 Z5\nM5\nM30",
+    "checks": [
+      {
+        "name": "Ступень на Z−15, Ø",
+        "expected": 30,
+        "probe": "diameter",
+        "z": -15
+      },
+      {
+        "name": "Исходный диаметр на Z−40",
+        "expected": 40,
+        "probe": "diameter",
+        "z": -40
+      }
+    ],
+    "profile": "firecnc-din-v1-turning",
+    "stockId": "cylinder-40x60",
+    "fixtureId": "chuck-15",
+    "allowedTools": [
+      1,
+      2
+    ],
+    "initialOffset": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "resolution": 0.25,
+    "grading": {
+      "geometry": 70,
+      "safety": 30,
+      "criticalCollision": true
+    }
+  },
+  {
+    "id": "turn-face",
+    "version": 1,
+    "kind": "turning",
+    "title": "Торцевание на 2 мм",
+    "goal": "Удалите 2 мм с торца заготовки Ø40 × 60. Новый торец Z−2, оставшаяся длина 58 мм. Резец 1; ось доступна.",
+    "lesson": "turning-feed",
+    "source": "G21 G18 G90 G54\nT0101\nS800 M3\nG0 X44 Z3\nG0 Z-2\nG1 X0 F100\nG1 Z3\nG0 X50\nM5\nM30",
+    "checks": [
+      {
+        "name": "Координата торца Z",
+        "expected": -2,
+        "probe": "front"
+      },
+      {
+        "name": "Диаметр на Z−10",
+        "expected": 40,
+        "probe": "diameter",
+        "z": -10
+      }
+    ],
+    "profile": "firecnc-din-v1-turning",
+    "stockId": "cylinder-40x60",
+    "fixtureId": "chuck-15",
+    "allowedTools": [
+      1,
+      2
+    ],
+    "initialOffset": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "resolution": 0.25,
+    "grading": {
+      "geometry": 70,
+      "safety": 30,
+      "criticalCollision": true
+    }
+  },
+  {
+    "id": "turn-groove",
+    "version": 1,
+    "kind": "turning",
+    "title": "Наружная канавка",
+    "goal": "Получите канавку шириной 3 мм на Z−20…−17 с дном Ø32. Соседние участки должны остаться Ø40. Инструмент 2; зажим Z≤−45.",
+    "lesson": "turning-setup",
+    "source": "G21 G18 G90 G54\nT0202\nS800 M3\nG0 X44 Z-20\nG1 X32 F70\nG1 X44\nG0 Z5\nM5\nM30",
+    "checks": [
+      {
+        "name": "Дно канавки на Z−18, Ø",
+        "expected": 32,
+        "probe": "diameter",
+        "z": -18
+      },
+      {
+        "name": "Участок на Z−24, Ø",
+        "expected": 40,
+        "probe": "diameter",
+        "z": -24
+      },
+      {
+        "name": "Участок на Z−15, Ø",
+        "expected": 40,
+        "probe": "diameter",
+        "z": -15
+      }
+    ],
+    "profile": "firecnc-din-v1-turning",
+    "stockId": "cylinder-40x60",
+    "fixtureId": "chuck-15",
+    "allowedTools": [
+      1,
+      2
+    ],
+    "initialOffset": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "resolution": 0.25,
+    "grading": {
+      "geometry": 70,
+      "safety": 30,
+      "criticalCollision": true
+    }
+  },
+  {
+    "id": "mill-slot",
+    "version": 1,
+    "kind": "milling",
+    "title": "Сквозной по длине паз",
+    "goal": "На заготовке 60 × 40 × 15 получите паз вдоль X по Y20: ширина 10 мм, глубина 3 мм. Фреза Ø10; губки до Z−5.",
+    "lesson": "milling-axes",
+    "source": "G21 G17 G90 G54\nT1 M6\nS1600 M3\nG0 X-8 Y20 Z5\nG1 Z-3 F100\nG1 X68 F200\nG0 Z10\nM5\nM30",
+    "checks": [
+      {
+        "name": "Глубина в центре паза",
+        "expected": 3,
+        "probe": "depth",
+        "x": 30,
+        "y": 20
+      },
+      {
+        "name": "Глубина у Y16",
+        "expected": 3,
+        "probe": "depth",
+        "x": 30,
+        "y": 16
+      },
+      {
+        "name": "Поверхность вне паза",
+        "expected": 0,
+        "probe": "depth",
+        "x": 30,
+        "y": 10
+      }
+    ],
+    "profile": "firecnc-din-v1-milling",
+    "stockId": "plate-60x40x15",
+    "fixtureId": "vise-top-minus5",
+    "allowedTools": [
+      1,
+      2
+    ],
+    "initialOffset": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "resolution": 0.25,
+    "grading": {
+      "geometry": 70,
+      "safety": 30,
+      "criticalCollision": true
+    }
+  },
+  {
+    "id": "mill-face",
+    "version": 1,
+    "kind": "milling",
+    "title": "Обработка плоскости",
+    "goal": "Понизьте всю верхнюю поверхность 60 × 40 на 2 мм. Фреза Ø10. Перекрывайте соседние проходы; отводите инструмент выше Z0.",
+    "lesson": "milling-modal",
+    "source": "G21 G17 G90 G54\nT1 M6\nS1600 M3\nG0 X-8 Y0 Z5\nG1 Z-2 F100\nG1 X68 F250\nY8\nX-8\nY16\nX68\nY24\nX-8\nY32\nX68\nY40\nX-8\nG0 Z10\nM5\nM30",
+    "checks": [
+      {
+        "name": "Глубина X5 Y5",
+        "expected": 2,
+        "probe": "depth",
+        "x": 5,
+        "y": 5
+      },
+      {
+        "name": "Глубина X30 Y5",
+        "expected": 2,
+        "probe": "depth",
+        "x": 30,
+        "y": 5
+      },
+      {
+        "name": "Глубина X55 Y5",
+        "expected": 2,
+        "probe": "depth",
+        "x": 55,
+        "y": 5
+      },
+      {
+        "name": "Глубина X5 Y20",
+        "expected": 2,
+        "probe": "depth",
+        "x": 5,
+        "y": 20
+      },
+      {
+        "name": "Глубина X30 Y20",
+        "expected": 2,
+        "probe": "depth",
+        "x": 30,
+        "y": 20
+      },
+      {
+        "name": "Глубина X55 Y20",
+        "expected": 2,
+        "probe": "depth",
+        "x": 55,
+        "y": 20
+      },
+      {
+        "name": "Глубина X5 Y35",
+        "expected": 2,
+        "probe": "depth",
+        "x": 5,
+        "y": 35
+      },
+      {
+        "name": "Глубина X30 Y35",
+        "expected": 2,
+        "probe": "depth",
+        "x": 30,
+        "y": 35
+      },
+      {
+        "name": "Глубина X55 Y35",
+        "expected": 2,
+        "probe": "depth",
+        "x": 55,
+        "y": 35
+      }
+    ],
+    "profile": "firecnc-din-v1-milling",
+    "stockId": "plate-60x40x15",
+    "fixtureId": "vise-top-minus5",
+    "allowedTools": [
+      1,
+      2
+    ],
+    "initialOffset": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "resolution": 0.25,
+    "grading": {
+      "geometry": 70,
+      "safety": 30,
+      "criticalCollision": true
+    }
+  },
+  {
+    "id": "mill-pocket",
+    "version": 1,
+    "kind": "milling",
+    "title": "Прямоугольный карман",
+    "goal": "Получите карман X20…40, Y10…30, глубиной 4 мм; внутренние углы R5. Фреза Ø10 с возможностью осевого врезания. Компенсация радиуса отсутствует: задаётся центр фрезы.",
+    "lesson": "milling-arcs",
+    "source": "G21 G17 G90 G54\nT1 M6\nS1600 M3\nG0 X25 Y15 Z5\nG1 Z-4 F80\nG1 X35 F180\nY20\nX25\nY25\nX35\nG0 Z10\nM5\nM30",
+    "checks": [
+      {
+        "name": "Дно в центре",
+        "expected": 4,
+        "probe": "depth",
+        "x": 30,
+        "y": 20
+      },
+      {
+        "name": "Дно X22 Y15",
+        "expected": 4,
+        "probe": "depth",
+        "x": 22,
+        "y": 15
+      },
+      {
+        "name": "Поверхность вне кармана",
+        "expected": 0,
+        "probe": "depth",
+        "x": 10,
+        "y": 20
+      },
+      {
+        "name": "Сохранённый материал в углу",
+        "expected": 0,
+        "probe": "depth",
+        "x": 20.25,
+        "y": 10.25
+      }
+    ],
+    "profile": "firecnc-din-v1-milling",
+    "stockId": "plate-60x40x15",
+    "fixtureId": "vise-top-minus5",
+    "allowedTools": [
+      1,
+      2
+    ],
+    "initialOffset": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "resolution": 0.25,
+    "grading": {
+      "geometry": 70,
+      "safety": 30,
+      "criticalCollision": true
+    }
+  }
+]

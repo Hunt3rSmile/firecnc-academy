@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=FireCNC Academy
+GenericName=CNC Learning Simulator
+GenericName[ru]=Учебный тренажёр ЧПУ
+Comment=Learn turning and milling with offline CNC simulation
+Comment[ru]=Уроки ЧПУ, токарная и фрезерная обработка с симуляцией
+Exec=firecnc-academy
+Icon=firecnc-academy
+Terminal=false
+Categories=Education;Engineering;
+Keywords=CNC;ЧПУ;Turning;Milling;Обучение;
+StartupWMClass=firecnc-academy
+StartupNotify=true

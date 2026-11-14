@@ -1,0 +1,30 @@
+import {test,expect,_electron,type ElectronApplication} from '@playwright/test';
+import {mkdtemp} from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+let application:ElectronApplication;
+test('Новая версия отображается в демо, ссылка ограничена GitHub, настройка сохраняется',async()=>{
+  const directory=await mkdtemp(path.join(os.tmpdir(),'firecnc-update-check-'));
+  const env=Object.fromEntries(Object.entries({...process.env,FCNC_DATA_DIR:directory}).filter(([key,value])=>value!==undefined&&key!=='ELECTRON_RUN_AS_NODE')) as Record<string,string>;
+  const launch=async()=>{application=await _electron.launch({args:['.',...(process.platform==='linux'?['--ozone-platform=x11']:[])],env,chromiumSandbox:true});const page=await application.firstWindow();await page.setViewportSize({width:1366,height:768});await expect(page.getByRole('heading',{name:'От понимания — к обработке'})).toBeVisible();return page;};
+  let page=await launch();
+  await application.evaluate(({net,shell})=>{
+    const original=net.fetch.bind(net);
+    net.fetch=async(input,init)=>{const url=typeof input==='string'?input:input.url;if(url.startsWith('https://api.github.com/repos/'))return new Response(JSON.stringify({tag_name:'v99.0.0',draft:false,prerelease:false,body:'Проверочный выпуск',html_url:'https://example.invalid'}));return original(input,init);};
+    shell.openExternal=async url=>{(globalThis as unknown as {openedUpdate:string}).openedUpdate=url;};
+  });
+  await page.getByRole('button',{name:'Настройки и лицензия',exact:true}).click();
+  await page.getByRole('button',{name:'Проверить обновления',exact:true}).click();
+  await expect(page.getByTestId('updates-status')).toHaveText('Доступна версия 99.0.0.');
+  await page.getByRole('button',{name:'Открыть выпуск 99.0.0',exact:true}).click();
+  expect(await application.evaluate(()=>(globalThis as unknown as {openedUpdate:string}).openedUpdate)).toBe('https://github.com/Hunt3rSmile/firecnc-academy/releases/tag/v99.0.0');
+  await page.getByRole('checkbox',{name:'Проверять обновления автоматически'}).uncheck();
+  const state=await page.evaluate(()=>window.academy.state());expect(state.ok&&state.value.updates.automatic).toBe(false);expect(state.ok&&state.value.license.status).toBe('demo');
+  await page.evaluate(()=>window.scrollTo(0,document.body.scrollHeight));
+  await page.screenshot({path:'test-results/update-available.png',fullPage:true});
+  await application.close();page=await launch();
+  await page.getByRole('button',{name:'Настройки и лицензия',exact:true}).click();
+  await expect(page.getByRole('checkbox',{name:'Проверять обновления автоматически'})).not.toBeChecked();
+  await application.close();
+});
+test.afterEach(async({},info)=>{if(info.status!=='passed')application?.process().kill();else await application?.close().catch(()=>{});});

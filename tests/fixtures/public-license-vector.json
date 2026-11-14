@@ -1,0 +1,27 @@
+{
+  "description": "Public verification vector only. Private key was discarded. NEVER include this public key in a release trust store.",
+  "now": 1800000000,
+  "publicKey": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEARzo6+HTJifdDxV4duXKWCvAbMMBQhOCOmmDw6ELtJNU=\n-----END PUBLIC KEY-----\n",
+  "keyId": "0011f10a02aaa3f6",
+  "token": "FCNC1.eyJ2ZXJzaW9uIjoxLCJwcm9kdWN0SWQiOiJmaXJlY25jLWFjYWRlbXkiLCJraW5kIjoib2ZmbGluZSIsImxpY2Vuc2VJZCI6IjU0OGViNjQyLTUzMjgtNDA1Yi04NDgxLTY1MmMyMWJhNWU5NCIsImtleUlkIjoiMDAxMWYxMGEwMmFhYTNmNiIsImxpY2Vuc2VkVG8iOiLQn9GD0LHQu9C40YfQvdGL0Lkg0YLQtdGB0YLQvtCy0YvQuSDQstC10LrRgtC-0YAg4oCUINC90LUg0LTQvtCy0LXRgNC10L0g0L_RgNC40LvQvtC20LXQvdC40LXQvCIsImVkaXRpb24iOiJzdHVkZW50IiwibW9kdWxlcyI6WyJ0aGVvcnkiLCJ0dXJuaW5nIiwibWlsbGluZyIsIm1lYXN1cmVtZW50cyIsImV4YW1zIl0sImlzc3VlZEF0IjoxNzAwMDAwMDAwLCJub3RCZWZvcmUiOjE3MDAwMDAwMDAsImV4cGlyZXNBdCI6bnVsbCwiYmluZGluZyI6bnVsbH0.sRYRzJv02wPAg4eJdMRPJp2ecyOvB0NmaW6M29bvIwCbyCtFjFT0BrgneWtE0D06pVlYOxmpOsJkvP0hO72RDA",
+  "payload": {
+    "version": 1,
+    "productId": "firecnc-academy",
+    "kind": "offline",
+    "licenseId": "548eb642-5328-405b-8481-652c21ba5e94",
+    "keyId": "0011f10a02aaa3f6",
+    "licensedTo": "Публичный тестовый вектор — не доверен приложением",
+    "edition": "student",
+    "modules": [
+      "theory",
+      "turning",
+      "milling",
+      "measurements",
+      "exams"
+    ],
+    "issuedAt": 1700000000,
+    "notBefore": 1700000000,
+    "expiresAt": null,
+    "binding": null
+  }
+}

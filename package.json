@@ -1,0 +1,143 @@
+{
+  "name": "firecnc-academy",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Автономный учебный тренажёр ЧПУ",
+  "author": "FireCNC Academy contributors",
+  "license": "MIT",
+  "main": "dist/desktop/main.cjs",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "tools/license-issuer"
+  ],
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "start": "electron .",
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "check": "npm run typecheck && npm test && npm run build",
+    "native:rebuild": "electron-rebuild -f -w better-sqlite3",
+    "postinstall": "node node_modules/electron/install.js && npm run native:rebuild",
+    "pack:linux": "npm run build && electron-builder --linux dir AppImage --x64 --publish never",
+    "pack:win": "npm run build && electron-builder --win nsis portable --x64 --publish never",
+    "license:keygen": "tsx tools/license-issuer/src/cli.ts keygen",
+    "license:issue": "tsx tools/license-issuer/src/cli.ts issue",
+    "license:verify": "tsx tools/license-issuer/src/cli.ts verify",
+    "license:list": "tsx tools/license-issuer/src/cli.ts list",
+    "license:dev": "tsx scripts/dev-license.ts",
+    "benchmark": "tsx scripts/benchmark.ts",
+    "pretest:e2e": "npm run license:dev && npm run build -- --development --trust .local/trusted-keys.json",
+    "license:rotate": "tsx tools/license-issuer/src/cli.ts rotate",
+    "test:pack": "node scripts/pack-smoke.mjs",
+    "release:artifacts": "node scripts/release-artifacts.mjs",
+    "check:publication": "node scripts/check-publication.mjs",
+    "test:installer": "node scripts/test-installer.mjs"
+  },
+  "dependencies": {
+    "better-sqlite3": "13.2.0",
+    "zod": "4.6.7",
+    "semver": "7.8.6"
+  },
+  "devDependencies": {
+    "electron": "45.3.2",
+    "@electron/rebuild": "4.2.1",
+    "electron-builder": "26.18.0",
+    "typescript": "7.0.2",
+    "vite": "8.3.8",
+    "@vitejs/plugin-react": "6.3.0",
+    "vitest": "5.1.0",
+    "@playwright/test": "1.65.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "monaco-editor": "0.57.0",
+    "three": "0.187.0",
+    "tsx": "4.23.15",
+    "esbuild": "0.28.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@types/node": "26.6.6",
+    "@types/better-sqlite3": "9.6.0",
+    "@types/three": "0.187.0",
+    "@types/semver": "7.8.0"
+  },
+  "build": {
+    "appId": "academy.firecnc.desktop",
+    "productName": "FireCNC Academy",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json",
+      "node_modules/better-sqlite3/**/*",
+      "node_modules/bindings/**/*",
+      "node_modules/file-uri-to-path/**/*",
+      "!node_modules/@firecnc/**",
+      "!**/*.pem",
+      "!**/*.fcnclic",
+      "!**/*.pfx",
+      "!**/.env"
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "**/*.node"
+    ],
+    "npmRebuild": true,
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "artifactName": "FireCNC-Academy-${version}-${arch}.${ext}",
+      "icon": "assets/firecnc-academy.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": false,
+      "artifactName": "FireCNC-Academy-${version}-setup-${arch}.${ext}",
+      "runAfterFinish": false
+    },
+    "linux": {
+      "target": [
+        "dir",
+        "AppImage"
+      ],
+      "category": "Education",
+      "executableName": "firecnc-academy",
+      "icon": "assets/firecnc-academy.png"
+    },
+    "portable": {
+      "artifactName": "FireCNC-Academy-${version}-portable-${arch}.${ext}"
+    },
+    "extraFiles": [
+      "START_HERE_RU.md",
+      "CNC_PROFILE.md",
+      "SIMULATION_LIMITS.md",
+      "LICENSE_FORMAT.md",
+      "THIRD_PARTY.md",
+      {
+        "from": "dist/THIRD_PARTY_NOTICES.txt",
+        "to": "THIRD_PARTY_NOTICES.txt"
+      }
+    ],
+    "appImage": {
+      "artifactName": "FireCNC-Academy-${version}-linux-${arch}.${ext}"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Hunt3rSmile/firecnc-academy.git"
+  },
+  "homepage": "https://github.com/Hunt3rSmile/firecnc-academy",
+  "bugs": {
+    "url": "https://github.com/Hunt3rSmile/firecnc-academy/issues"
+  }
+}

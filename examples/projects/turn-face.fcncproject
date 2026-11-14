@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "name": "Торцевание на 2 мм",
+  "kind": "turning",
+  "source": "G21 G18 G90 G54\nT0101\nS800 M3\nG0 X44 Z3\nG0 Z-2\nG1 X0 F100\nG1 Z3\nG0 X50\nM5\nM30",
+  "offset": {
+    "x": 0,
+    "y": 0,
+    "z": 0
+  },
+  "resolution": 0.25
+}

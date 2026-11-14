@@ -1,0 +1,57 @@
+{
+  "date": "2026-11-14T11:29:58.987Z",
+  "runtime": "v26.12.0",
+  "platform": "linux",
+  "os": "7.2.15-1-omarchy",
+  "cpu": "Intel(R) Xeon(R) CPU E5-2680 v3 @ 2.50GHz",
+  "logicalCpus": 24,
+  "memoryBytes": 16640184320,
+  "repetitions": 3,
+  "maxProcessRssKiB": 135660,
+  "scenarios": [
+    {
+      "kind": "turning",
+      "resolution": 0.25,
+      "grid": [
+        80,
+        240
+      ],
+      "sourceLines": 11,
+      "events": 10,
+      "segments": 5,
+      "samples": 690,
+      "pathMilliseconds": 0.45456900000001116,
+      "simulationMilliseconds": 5.178593666666643,
+      "rssBefore": 100917248,
+      "rssAfter": 106553344,
+      "expectedVolume": 16493.361431346413,
+      "actualVolume": 16493.361431346333,
+      "volumeAbsoluteError": 8.003553375601768e-11,
+      "measured": 30,
+      "expectedMeasurement": 30,
+      "uncertainty": 0.4360533905932738
+    },
+    {
+      "kind": "milling",
+      "resolution": 0.25,
+      "grid": [
+        240,
+        160
+      ],
+      "sourceLines": 10,
+      "events": 9,
+      "segments": 4,
+      "samples": 1024,
+      "pathMilliseconds": 0.37731933333333245,
+      "simulationMilliseconds": 31.70514666666668,
+      "rssBefore": 123265024,
+      "rssAfter": 137715712,
+      "expectedVolume": 1800,
+      "actualVolume": 1800,
+      "volumeAbsoluteError": 0,
+      "measured": 3,
+      "expectedMeasurement": 3,
+      "uncertainty": 0.4360533905932738
+    }
+  ]
+}

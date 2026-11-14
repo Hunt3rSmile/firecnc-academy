@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+project_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+if [[ ! -x "$project_dir/release/linux-unpacked/firecnc-academy" ]]; then
+  (cd "$project_dir" && npm run pack:linux)
+fi
+cd "$project_dir/pkgbuild"
+makepkg --force --clean

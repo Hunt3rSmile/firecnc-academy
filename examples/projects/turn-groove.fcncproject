@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "name": "Наружная канавка",
+  "kind": "turning",
+  "source": "G21 G18 G90 G54\nT0202\nS800 M3\nG0 X44 Z-20\nG1 X32 F70\nG1 X44\nG0 Z5\nM5\nM30",
+  "offset": {
+    "x": 0,
+    "y": 0,
+    "z": 0
+  },
+  "resolution": 0.25
+}
