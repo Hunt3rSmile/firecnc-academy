@@ -42,6 +42,12 @@ describe('Изменение материала и независимые раз
     const exercise=exercises[0]!,result=simulate(compile(exercise.source,{kind:'turning'}),{kind:'turning'});
     expect(assess(exercise,result,{completed:false})).toMatchObject({passed:false,score:0});
   });
+  it('опасное окончание или неподходящий рабочий инструмент не засчитываются',()=>{
+    const exercise=exercises[0]!,unfinished=simulate(compile(exercise.source.replace(/M30/g,''),{kind:'turning'}),{kind:'turning'});
+    expect(assess(exercise,unfinished)).toMatchObject({passed:false,score:0,safeStop:false});
+    const completed=simulate(compile(exercise.source,{kind:'turning'}),{kind:'turning'});
+    expect(assess({...exercise,allowedTools:[2]},completed)).toMatchObject({passed:false,score:0,forbiddenTools:[1]});
+  });
 });
 describe('Согласованное аварийное состояние и воспроизведение',()=>{
   it.each([
@@ -62,6 +68,11 @@ describe('Согласованное аварийное состояние и в
   it('держатель и хвостовик проверяются отдельно от режущей части',()=>{
     const p=compile('T0202\nS1000 M3\nG0 X44 Z-20\nG1 X10 F100',{kind:'turning'});
     expect(simulate(p,{kind:'turning'}).collision?.code).toBe('HOLDER_STOCK');
+  });
+  it('не удаляет несрезанную крышку над слишком глубоким боковым проходом',()=>{
+    const p=compile('T1 M6\nS1000 M3\nG0 X-8 Y20 Z5\nG1 Z-15 F100\nG1 X30',{kind:'milling'});
+    const result=simulate(p,{kind:'milling',setup:{kind:'milling',width:60,depth:40,thickness:25,jawGrip:5}});
+    expect(result.collision?.code).toBe('CUTTING_LENGTH');expect(result.collision?.line).toBe(5);
   });
   it('возврат к кадру возвращает исходный материал; повтор детерминирован',()=>{
     const p=compile(DEMO_SOURCES.milling,{kind:'milling'}),full=simulate(p,{kind:'milling'}),begin=simulate(p,{kind:'milling',frame:0}),again=simulate(p,{kind:'milling'});

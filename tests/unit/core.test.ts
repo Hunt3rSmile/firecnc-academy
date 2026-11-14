@@ -32,6 +32,13 @@ describe('Учебный DIN/ISO: координаты и атомарность
     expect(compile(' '.repeat(200001),{kind:'milling'}).error?.code).toBe('FILE_LIMIT');
     expect(compile('M30\nG0 X3',{kind:'milling'}).error?.code).toBe('AFTER_END');
   });
+  it('M2/M30 выключают шпиндель и СОЖ, M0 сохраняет режимы',()=>{
+    for(const end of ['M2','M30']) {
+      const p=compile(`S900 M3 M8\n${end}`,{kind:'milling'});
+      expect(p.error).toBeNull();expect(p.state).toMatchObject({spindle:'off',coolant:false,stopped:'end'});
+    }
+    expect(compile('S900 M3 M8\nM0',{kind:'milling'}).state).toMatchObject({spindle:'cw',coolant:true,stopped:'pause'});
+  });
 });
 describe('Геометрия дуг',()=>{
   for(const kind of ['milling','turning'] as const)for(const motion of [2,3])for(const format of ['center','R','largeR']) {

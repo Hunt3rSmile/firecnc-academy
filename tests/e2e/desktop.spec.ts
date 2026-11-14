@@ -76,7 +76,7 @@ test('Полный автономный сценарий A/B: урок, конт
   await page.getByRole('button',{name:'Переключить тему'}).click();
   await page.evaluate(()=>window.scrollTo(0,0));
   await page.screenshot({path:'test-results/simulator-light.png',fullPage:true});
-  await page.getByRole('button',{name:'Проверка знаний',exact:true}).click();
+  await page.getByRole('button',{name:'Экзамены',exact:true}).click();await page.getByRole('button',{name:'Вводная проверка без таймера',exact:true}).click();
   for(let i=0;i<right.length;i++)await page.locator('fieldset').nth(i).getByRole('radio').nth((right[i]!+1)%3).check();
   await page.getByRole('button',{name:'Завершить и разобрать ответы'}).click();
   await expect(page.getByRole('heading',{name:'Результат: 0 из 6'})).toBeVisible();

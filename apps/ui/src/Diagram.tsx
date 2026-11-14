@@ -13,14 +13,13 @@ export function Diagram({type}:{type:Lesson['diagram']}) {
       <path d="M165 155H545 M165 155l115-85 M165 155V25" stroke="#65d5bd" strokeWidth="2" markerEnd="url(#arrow)"/>
       <text x="550" y="160">+X</text><text x="285" y="65">+Y</text><text x="174" y="31">+Z</text><text x="82" y="205">Z0 — верх · Z−3 — торец фрезы на глубине 3 мм</text><rect x="300" y="35" width="32" height="80" fill="#b9c7cb"/><text x="343" y="45">Ø10</text>
     </>:type==='arc'?<>
-      <path d="M160 180H500 M160 180V25" stroke="#65d5bd" markerEnd="url(#arrow)"/><path d="M410 180A250 250 0 0 0 160-70" fill="none" stroke="#d9ae68" strokeWidth="3"/>
-      <path d="M360 180A200 200 0 0 0 160-20" fill="none" stroke="#65d5bd" strokeWidth="4"/>
-      <circle cx="160" cy="180" r="5" fill="#d9ae68"/><circle cx="360" cy="180" r="5" fill="#fff"/>
-      <text x="175" y="205">Центр (0, 0)</text><text x="375" y="175">Начало (10, 0)</text><text x="270" y="48">G3 · I−10 J0</text><text x="315" y="92">R = 10 мм</text>
+      <path d="M95 180H540 M190 205V25" stroke="#65d5bd" markerEnd="url(#arrow)"/><path d="M310 180A120 120 0 0 0 190 60" fill="none" stroke="#65d5bd" strokeWidth="4"/>
+      <path d="M190 180H310" stroke="#d9ae68" strokeDasharray="5 4"/><circle cx="190" cy="180" r="5" fill="#d9ae68"/><circle cx="310" cy="180" r="5" fill="#fff"/>
+      <text x="200" y="207">Центр (0, 0)</text><text x="320" y="177">Начало (10, 0)</text><text x="215" y="48">G3 X0 Y10 · I−10 J0</text><text x="235" y="150">R = 10 мм</text><text x="545" y="183">+X</text><text x="160" y="27">+Y</text>
     </>:type==='modal'?<>
       <path d="M80 125H550" stroke="#65d5bd" strokeWidth="2" markerEnd="url(#arrow)"/>
       {[{x:160,s:'X10'},{x:310,s:'X15'},{x:460,s:'X20'}].map(p=><g key={p.s}><circle cx={p.x} cy="125" r="6" fill="#d9ae68"/><text x={p.x-12} y="160">{p.s}</text></g>)}
-      <text x="192" y="93">G91 X5</text><text x="342" y="93">X5</text><text x="80" y="210">G91 сохраняется между кадрами · смещение +5 мм дважды</text>
+      <text x="192" y="93">G91 X5</text><text x="342" y="93">X5</text><text x="80" y="210">G91 сохраняется · X увеличивается на 5 дважды</text>
     </>:<>
       <path d="M90 85H550" stroke="#d9ae68" strokeWidth="3" strokeDasharray="10 6"/><path d="M90 145H550" stroke="#65d5bd" strokeWidth="4" markerEnd="url(#arrow)"/>
       <text x="90" y="60">G0 · быстрый ход · только свободное пространство</text><text x="90" y="190">G1 · 100 мм / 100 мм/мин = 1 мин = 60 с</text>

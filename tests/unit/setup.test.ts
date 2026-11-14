@@ -14,7 +14,7 @@ describe('Заготовка и закрепление проекта v2',()=>{
   });
   it('сохраняет исходный текст при миграции старого проекта',()=>{
     const old={version:1,kind:'turning',name:'Мой вал',source:'G90\nG0 X44',offset:{x:2,y:0,z:1},resolution:.25};
-    expect(projectSchema.parse(old)).toEqual({...old,version:2,setup:defaultSetup('turning')});expect(old.version).toBe(1);
+    expect(projectSchema.parse(old)).toEqual({...old,version:2,toolSetId:'firecnc-basic-v1',setup:defaultSetup('turning')});expect(old.version).toBe(1);
     expect(()=>projectSchema.parse({...old,source:'G0',extra:true})).toThrow();
   });
   it('получает независимый аналитический объём точения заготовки Ø50×70',()=>{

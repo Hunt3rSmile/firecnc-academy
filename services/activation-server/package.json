@@ -1,0 +1,1 @@
+{"name":"@firecnc/activation-server","version":"0.3.0","private":true,"type":"module","dependencies":{"fastify":"5.12.8","@fastify/rate-limit":"11.2.2"}}

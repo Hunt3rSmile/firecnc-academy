@@ -1,7 +1,7 @@
 import {describe,it,expect} from 'vitest';
 import {lessons,questions,introQuestions,grade,decimalAnswer,validateContent} from '@firecnc/learning';
 describe('Содержательный вводный контроль',()=>{
-  it('проверяет схему, ID, связи и разные тексты вопросов',()=>{expect(validateContent).not.toThrow();expect(new Set(questions.map(q=>q.prompt)).size).toBe(questions.length);expect(lessons.length).toBe(6);});
+  it('проверяет схему, ID, связи и разные тексты вопросов',()=>{expect(validateContent).not.toThrow();expect(new Set(questions.map(q=>q.prompt)).size).toBe(questions.length);expect(lessons.length).toBe(24);});
   it('оценивает все ответы и объясняет ошибки',()=>{
     const answers=Object.fromEntries(introQuestions.map(q=>[q.id,q.correct.map(String)]));
     expect(grade(answers).score).toBe(6);answers[introQuestions[0]!.id]=['2'];const r=grade(answers);expect(r.score).toBe(5);expect(r.details[0]!.question.mistake.length).toBeGreaterThan(20);

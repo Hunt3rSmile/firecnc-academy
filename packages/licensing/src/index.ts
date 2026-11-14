@@ -1,4 +1,4 @@
-import {createHash,createPublicKey,verify,type KeyObject} from 'node:crypto';
+import {createHash,createPublicKey,verify,sign,type KeyObject} from 'node:crypto';
 import {z} from 'zod';
 import {MODULES} from '@firecnc/contracts';
 export {MODULES,EDITIONS} from '@firecnc/contracts';
@@ -21,12 +21,18 @@ export const payloadSchema=z.strictObject({
 export type LicensePayload=z.infer<typeof payloadSchema>;
 export type Verification = {ok:true;payload:LicensePayload}|{ok:false;code:string;message:string;payload?:LicensePayload};
 export type TrustStore=Record<string,string>;
+export function signLicense(value:LicensePayload,privateKey:KeyObject):string {
+  if(privateKey.asymmetricKeyType!=='ed25519'||privateKey.type!=='private')throw new Error('Нужен закрытый ключ Ed25519.');
+  const payload=payloadSchema.parse(value);if(payload.keyId!==keyId(createPublicKey(privateKey)))throw new Error('keyId не соответствует ключу подписи.');
+  const encoded=Buffer.from(JSON.stringify(payload),'utf8').toString('base64url');
+  return `FCNC1.${encoded}.${sign(null,Buffer.concat([DOMAIN,Buffer.from(encoded,'ascii')]),privateKey).toString('base64url')}`;
+}
 // This parser detects duplicate keys before JSON.parse can silently overwrite them.
-export function strictJSON(text:string):unknown {
+export function strictJSON(text:string,limits={maxDepth:6,maxNodes:150}):unknown {
   let i=0,nodes=0;
   const ws=()=>{while(/[ \t\r\n]/.test(text[i]??'')&&i<text.length)i++;};
   const parse=(depth:number):unknown=>{
-    if(depth>6||++nodes>150) throw new Error('Слишком сложный JSON.');
+    if(depth>limits.maxDepth||++nodes>limits.maxNodes) throw new Error('Слишком сложный JSON.');
     ws();const c=text[i];
     if(c==='"') {
       const start=i++;

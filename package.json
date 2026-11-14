@@ -10,7 +10,8 @@
   "workspaces": [
     "apps/*",
     "packages/*",
-    "tools/license-issuer"
+    "tools/license-issuer",
+    "services/*"
   ],
   "engines": {
     "node": ">=22.12.0"
@@ -38,7 +39,14 @@
     "test:pack": "node scripts/pack-smoke.mjs",
     "release:artifacts": "node scripts/release-artifacts.mjs",
     "check:publication": "node scripts/check-publication.mjs",
-    "test:installer": "node scripts/test-installer.mjs"
+    "test:installer": "node scripts/test-installer.mjs",
+    "server:setup": "tsx services/activation-server/src/cli.ts setup",
+    "server:start": "tsx services/activation-server/src/cli.ts start",
+    "server:create": "tsx services/activation-server/src/cli.ts create",
+    "server:list": "tsx services/activation-server/src/cli.ts list",
+    "server:admin": "tsx services/activation-server/src/cli.ts",
+    "server:backup": "tsx services/activation-server/src/cli.ts backup",
+    "license:activation": "tsx services/activation-server/src/cli.ts create"
   },
   "dependencies": {
     "better-sqlite3": "13.2.0",

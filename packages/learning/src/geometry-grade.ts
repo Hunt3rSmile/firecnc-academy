@@ -2,7 +2,7 @@ import {z} from 'zod';
 import type {SimulationResult} from '@firecnc/simulation';
 const region=z.strictObject({left:z.number(),right:z.number(),bottom:z.number(),top:z.number(),radius:z.number().min(0),depth:z.number().min(0)}).refine(r=>r.left<r.right&&r.bottom<r.top&&r.radius*2<=Math.min(r.right-r.left,r.top-r.bottom));
 export const targetSchema=z.discriminatedUnion('kind',[
-  z.strictObject({kind:z.literal('turning'),diameter:z.number().positive(),length:z.number().positive(),front:z.number().max(0),regions:z.array(z.strictObject({from:z.number(),to:z.number(),diameter:z.number().min(0)}).refine(r=>r.from<r.to)).max(30)}),
+  z.strictObject({kind:z.literal('turning'),diameter:z.number().positive(),length:z.number().positive(),front:z.number().max(0),regions:z.array(z.strictObject({from:z.number(),to:z.number(),diameter:z.number().min(0),endDiameter:z.number().min(0).optional()}).refine(r=>r.from<r.to)).max(30)}),
   z.strictObject({kind:z.literal('milling'),width:z.number().positive(),depth:z.number().positive(),thickness:z.number().positive(),regions:z.array(region).max(30)})
 ]);
 export type GeometryTarget=z.infer<typeof targetSchema>;
@@ -20,7 +20,7 @@ export function gradeGeometry(target:GeometryTarget,result:SimulationResult):{pa
     const boundaries=[target.front,...target.regions.flatMap(r=>[r.from,r.to])];
     for(let iz=0;iz<m.nz;iz++){
       const z=m.zMin+(iz+.5)*m.length/m.nz;if(boundaries.some(b=>Math.abs(z-b)<=tolerance))continue;
-      const radius=z>target.front?0:Math.min(target.diameter/2,...target.regions.filter(r=>z>r.from&&z<r.to).map(r=>r.diameter/2));
+      const radius=z>target.front?0:Math.min(target.diameter/2,...target.regions.filter(r=>z>r.from&&z<r.to).map(r=>(r.diameter+((r.endDiameter??r.diameter)-r.diameter)*(z-r.from)/(r.to-r.from))/2));
       for(let ir=0;ir<m.nr;ir++){
         const r=(ir+.5)*m.resolution;if(Math.abs(r-radius)<=tolerance)continue;
         checkedCells++;if((m.occupied[iz*m.nr+ir]===1)!==(r<radius))wrongCells++;

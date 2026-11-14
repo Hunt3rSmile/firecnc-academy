@@ -157,6 +157,7 @@ export function executeBlock(block: Block, previous: ModalState, options: Compil
     if(t.value===0) state.stopped='pause';
     if(t.value===2||t.value===30) state.stopped='end';
   }
+  if(state.stopped==='end'){state.spindle='off';state.coolant=false;}
   const hasAxis=['X','Y','Z'].some(a=>words.has(a));
   const arc=state.motion===2||state.motion===3;
   const hasCenter=['I','J','K','R'].some(a=>words.has(a));

@@ -1,6 +1,6 @@
 import {build} from 'esbuild';
 import {build as viteBuild} from 'vite';
-import {readFile,mkdir,writeFile} from 'node:fs/promises';
+import {readFile,mkdir,writeFile,copyFile} from 'node:fs/promises';
 import './notices.mjs';
 import {createPublicKey,createHash} from 'node:crypto';
 const args=process.argv.slice(2),trustIndex=args.indexOf('--trust');
@@ -20,9 +20,11 @@ for(const [id,pem] of Object.entries(trusted)) {
   if(key.asymmetricKeyType!=='ed25519'||id!==expected)throw new Error('Неверный keyId или алгоритм доверенного ключа.');
 }
 await mkdir('dist/desktop',{recursive:true});
+await copyFile('apps/ui/src/assets/NotoSans-Regular.ttf','dist/desktop/report-font.ttf');
 await build({entryPoints:['apps/desktop/src/main.ts'],outfile:'dist/desktop/main.cjs',bundle:true,platform:'node',format:'cjs',target:'node22',external:['electron','better-sqlite3'],define:{__TRUSTED_KEYS__:JSON.stringify(trusted),__DEVELOPMENT_TRUST__:JSON.stringify(development)}});
 await build({entryPoints:['apps/desktop/src/preload.ts'],outfile:'dist/desktop/preload.cjs',bundle:true,platform:'node',format:'cjs',target:'node22',external:['electron']});
 await build({entryPoints:['apps/desktop/src/assessment.worker.ts'],outfile:'dist/desktop/assessment.cjs',bundle:true,platform:'node',format:'cjs',target:'node22'});
+await build({entryPoints:['apps/desktop/src/teaching.worker.ts'],outfile:'dist/desktop/teaching.cjs',bundle:true,platform:'node',format:'cjs',target:'node22'});
 await viteBuild();
 await writeFile('dist/build-info.json',JSON.stringify({development,trustKeyIds:Object.keys(trusted)},null,2));
 console.log(`Сборка: ${development?'development':'release'}, доверенных ключей: ${Object.keys(trusted).length}.`);

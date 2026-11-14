@@ -1,5 +1,5 @@
 import {createPrivateKey,createPublicKey,generateKeyPairSync,sign,randomUUID,type KeyObject} from 'node:crypto';
-import {DOMAIN,keyId,payloadSchema,type LicensePayload} from '@firecnc/licensing';
+import {signLicense,keyId,payloadSchema,type LicensePayload} from '@firecnc/licensing';
 import {EDITIONS,type Edition,type LicenseModule} from '@firecnc/contracts';
 export function newKeys(passphrase?:string):{privatePem:string;publicPem:string;keyId:string} {
   const pair=generateKeyPairSync('ed25519');
@@ -14,7 +14,5 @@ export function issueLicense(privatePem:string,options:{edition:Edition;modules?
   const now=options.now??Math.floor(Date.now()/1000);
   const payload=payloadSchema.parse({version:1,productId:'firecnc-academy',kind:'offline',licenseId:randomUUID(),keyId:keyId(createPublicKey(privateKey)),licensedTo:options.customer,
     edition:options.edition,modules:options.modules??EDITIONS[options.edition],issuedAt:now,notBefore:now,expiresAt:options.days===undefined?null:now+options.days*86400,binding:options.binding?{installationHash:options.binding}:null});
-  const encoded=Buffer.from(JSON.stringify(payload),'utf8').toString('base64url');
-  const signature=sign(null,Buffer.concat([DOMAIN,Buffer.from(encoded,'ascii')]),privateKey).toString('base64url');
-  return {token:`FCNC1.${encoded}.${signature}`,payload};
+  return {token:signLicense(payload,privateKey),payload};
 }

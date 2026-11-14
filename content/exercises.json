@@ -51,7 +51,8 @@
           "diameter": 30
         }
       ]
-    }
+    },
+    "initialSource": "(Напишите программу по чертежу: Ступенчатый вал)\nG21 G18 G90 G54\nT0101\nS800 M3\n(Добавьте безопасный подвод, рабочие проходы и отвод)\nM5\nM30"
   },
   {
     "id": "turn-face",
@@ -98,7 +99,8 @@
       "length": 60,
       "front": -2,
       "regions": []
-    }
+    },
+    "initialSource": "(Напишите программу по чертежу: Торцевание на 2 мм)\nG21 G18 G90 G54\nT0101\nS800 M3\n(Добавьте безопасный подвод, рабочие проходы и отвод)\nM5\nM30"
   },
   {
     "id": "turn-groove",
@@ -158,7 +160,8 @@
           "diameter": 32
         }
       ]
-    }
+    },
+    "initialSource": "(Напишите программу по чертежу: Наружная канавка)\nG21 G18 G90 G54\nT0101\nS800 M3\n(Добавьте безопасный подвод, рабочие проходы и отвод)\nM5\nM30"
   },
   {
     "id": "mill-slot",
@@ -224,7 +227,8 @@
           "depth": 3
         }
       ]
-    }
+    },
+    "initialSource": "(Напишите программу по чертежу: Сквозной по длине паз)\nG21 G17 G90 G54\nT1 M6\nS1600 M3\n(Добавьте безопасный подвод, рабочие проходы и отвод)\nM5\nM30"
   },
   {
     "id": "mill-face",
@@ -332,7 +336,8 @@
           "depth": 2
         }
       ]
-    }
+    },
+    "initialSource": "(Напишите программу по чертежу: Обработка плоскости)\nG21 G17 G90 G54\nT1 M6\nS1600 M3\n(Добавьте безопасный подвод, рабочие проходы и отвод)\nM5\nM30"
   },
   {
     "id": "mill-pocket",
@@ -405,6 +410,911 @@
           "depth": 4
         }
       ]
-    }
+    },
+    "initialSource": "(Напишите программу по чертежу: Прямоугольный карман)\nG21 G17 G90 G54\nT1 M6\nS1600 M3\n(Добавьте безопасный подвод, рабочие проходы и отвод)\nM5\nM30"
+  },
+  {
+    "id": "turn-relative",
+    "version": 2,
+    "kind": "turning",
+    "title": "Участок в приращениях",
+    "goal": "Получите Ø34 на Z−24…0 из заготовки Ø40×60. Переведите указанные движения в приращения; любой эквивалентный безопасный способ также допускается. Резец 1.",
+    "lesson": "turning-g90",
+    "source": "G21 G18 G90 G54\nT0101\nS800 M3\nG0 X44 Z3\nG91 G1 X-10 F100\nZ-27\nX10\nG90 G0 Z5\nM5\nM30",
+    "checks": [
+      {
+        "name": "Диаметр обработанного участка",
+        "expected": 34,
+        "probe": "diameter",
+        "z": -12
+      },
+      {
+        "name": "Сохранённый диаметр",
+        "expected": 40,
+        "probe": "diameter",
+        "z": -32
+      }
+    ],
+    "profile": "firecnc-din-v1-turning",
+    "stockId": "cylinder-40x60",
+    "fixtureId": "chuck-15",
+    "allowedTools": [
+      1
+    ],
+    "initialOffset": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "resolution": 0.25,
+    "grading": {
+      "geometry": 70,
+      "safety": 30,
+      "criticalCollision": true
+    },
+    "target": {
+      "kind": "turning",
+      "diameter": 40,
+      "length": 60,
+      "front": 0,
+      "regions": [
+        {
+          "from": -24,
+          "to": 0,
+          "diameter": 34
+        }
+      ]
+    },
+    "initialSource": "(Напишите программу по чертежу: Участок в приращениях)\nG21 G18 G90 G54\nT0101\nS800 M3\n(Добавьте безопасный подвод, рабочие проходы и отвод)\nM5\nM30"
+  },
+  {
+    "id": "turn-two-steps",
+    "version": 2,
+    "kind": "turning",
+    "title": "Две ступени вала",
+    "goal": "Сформируйте две ступени: Ø36 на Z−32…−16 и Ø30 на Z−16…0. Исходный Ø40 сохраните у крепления. Снимайте внешний припуск перед меньшим диаметром. Резец 1.",
+    "lesson": "turning-plan",
+    "source": "G21 G18 G90 G54\nT0101\nS800 M3\nG0 X44 Z3\nG1 X36 F120\nZ-32\nX44\nG0 Z3\nG1 X30\nZ-16\nX44\nG0 Z5\nM5\nM30",
+    "checks": [
+      {
+        "name": "Малая ступень",
+        "expected": 30,
+        "probe": "diameter",
+        "z": -8
+      },
+      {
+        "name": "Большая ступень",
+        "expected": 36,
+        "probe": "diameter",
+        "z": -24
+      },
+      {
+        "name": "Припуск у крепления",
+        "expected": 40,
+        "probe": "diameter",
+        "z": -40
+      }
+    ],
+    "profile": "firecnc-din-v1-turning",
+    "stockId": "cylinder-40x60",
+    "fixtureId": "chuck-15",
+    "allowedTools": [
+      1
+    ],
+    "initialOffset": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "resolution": 0.25,
+    "grading": {
+      "geometry": 70,
+      "safety": 30,
+      "criticalCollision": true
+    },
+    "target": {
+      "kind": "turning",
+      "diameter": 40,
+      "length": 60,
+      "front": 0,
+      "regions": [
+        {
+          "from": -32,
+          "to": 0,
+          "diameter": 36
+        },
+        {
+          "from": -16,
+          "to": 0,
+          "diameter": 30
+        }
+      ]
+    },
+    "initialSource": "(Напишите программу по чертежу: Две ступени вала)\nG21 G18 G90 G54\nT0101\nS800 M3\n(Добавьте безопасный подвод, рабочие проходы и отвод)\nM5\nM30"
+  },
+  {
+    "id": "turn-wide-groove",
+    "version": 2,
+    "kind": "turning",
+    "title": "Канавка двумя врезаниями",
+    "goal": "Получите канавку шириной 6 мм на Z−24…−18, дно Ø34. Используйте два перекрывающихся положения канавочного резца шириной 3 мм. Соседние поверхности Ø40.",
+    "lesson": "turning-tools",
+    "source": "G21 G18 G90 G54\nT0202\nS800 M3\nG0 X44 Z-24\nG1 X34 F70\nX44\nG0 Z-21\nG1 X34\nX44\nG0 Z5\nM5\nM30",
+    "checks": [
+      {
+        "name": "Дно слева",
+        "expected": 34,
+        "probe": "diameter",
+        "z": -22
+      },
+      {
+        "name": "Дно справа",
+        "expected": 34,
+        "probe": "diameter",
+        "z": -19
+      },
+      {
+        "name": "Сохранённый участок",
+        "expected": 40,
+        "probe": "diameter",
+        "z": -28
+      }
+    ],
+    "profile": "firecnc-din-v1-turning",
+    "stockId": "cylinder-40x60",
+    "fixtureId": "chuck-15",
+    "allowedTools": [
+      2
+    ],
+    "initialOffset": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "resolution": 0.25,
+    "grading": {
+      "geometry": 70,
+      "safety": 30,
+      "criticalCollision": true
+    },
+    "target": {
+      "kind": "turning",
+      "diameter": 40,
+      "length": 60,
+      "front": 0,
+      "regions": [
+        {
+          "from": -24,
+          "to": -18,
+          "diameter": 34
+        }
+      ]
+    },
+    "initialSource": "(Напишите программу по чертежу: Канавка двумя врезаниями)\nG21 G18 G90 G54\nT0202\nS800 M3\n(Добавьте безопасный подвод, рабочие проходы и отвод)\nM5\nM30"
+  },
+  {
+    "id": "turn-two-grooves",
+    "version": 2,
+    "kind": "turning",
+    "title": "Две канавки разной глубины",
+    "goal": "Сделайте канавку Z−14…−11 с дном Ø32 и канавку Z−30…−27 с дном Ø36. Между ними оставьте Ø40. Выбран канавочный инструмент 2 шириной 3 мм.",
+    "lesson": "turning-plan",
+    "source": "G21 G18 G90 G54\nT0202\nS800 M3\nG0 X44 Z-14\nG1 X32 F60\nX44\nG0 Z-30\nG1 X36\nX44\nG0 Z5\nM5\nM30",
+    "checks": [
+      {
+        "name": "Первая канавка",
+        "expected": 32,
+        "probe": "diameter",
+        "z": -12
+      },
+      {
+        "name": "Вторая канавка",
+        "expected": 36,
+        "probe": "diameter",
+        "z": -28
+      },
+      {
+        "name": "Между канавками",
+        "expected": 40,
+        "probe": "diameter",
+        "z": -20
+      }
+    ],
+    "profile": "firecnc-din-v1-turning",
+    "stockId": "cylinder-40x60",
+    "fixtureId": "chuck-15",
+    "allowedTools": [
+      2
+    ],
+    "initialOffset": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "resolution": 0.25,
+    "grading": {
+      "geometry": 70,
+      "safety": 30,
+      "criticalCollision": true
+    },
+    "target": {
+      "kind": "turning",
+      "diameter": 40,
+      "length": 60,
+      "front": 0,
+      "regions": [
+        {
+          "from": -14,
+          "to": -11,
+          "diameter": 32
+        },
+        {
+          "from": -30,
+          "to": -27,
+          "diameter": 36
+        }
+      ]
+    },
+    "initialSource": "(Напишите программу по чертежу: Две канавки разной глубины)\nG21 G18 G90 G54\nT0202\nS800 M3\n(Добавьте безопасный подвод, рабочие проходы и отвод)\nM5\nM30"
+  },
+  {
+    "id": "turn-chamfer",
+    "version": 2,
+    "kind": "turning",
+    "title": "Фаска 3×45° на ступени",
+    "goal": "Обточите участок Z−20…0 до Ø30. На торце выполните фаску длиной 3 мм по Z: от X24 Z0 до X30 Z−3. В модели нулевой радиус вершины; изменение X диаметральное.",
+    "lesson": "turning-g0g1",
+    "source": "G21 G18 G90 G54\nT0101\nS800 M3\nG0 X44 Z3\nG1 X30 F100\nZ-20\nX44\nG0 Z3\nG1 X24\nZ0\nX30 Z-3\nX44\nG0 Z5\nM5\nM30",
+    "checks": [
+      {
+        "name": "Цилиндрическая ступень",
+        "expected": 30,
+        "probe": "diameter",
+        "z": -10
+      },
+      {
+        "name": "Сохранённый участок",
+        "expected": 40,
+        "probe": "diameter",
+        "z": -30
+      }
+    ],
+    "profile": "firecnc-din-v1-turning",
+    "stockId": "cylinder-40x60",
+    "fixtureId": "chuck-15",
+    "allowedTools": [
+      1
+    ],
+    "initialOffset": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "resolution": 0.25,
+    "grading": {
+      "geometry": 70,
+      "safety": 30,
+      "criticalCollision": true
+    },
+    "target": {
+      "kind": "turning",
+      "diameter": 40,
+      "length": 60,
+      "front": 0,
+      "regions": [
+        {
+          "from": -20,
+          "to": 0,
+          "diameter": 30
+        },
+        {
+          "from": -3,
+          "to": 0,
+          "diameter": 30,
+          "endDiameter": 24
+        }
+      ]
+    },
+    "initialSource": "(Напишите программу по чертежу: Фаска 3×45° на ступени)\nG21 G18 G90 G54\nT0101\nS800 M3\n(Добавьте безопасный подвод, рабочие проходы и отвод)\nM5\nM30"
+  },
+  {
+    "id": "turn-face-step",
+    "version": 2,
+    "kind": "turning",
+    "title": "Торец и ступень",
+    "goal": "Сначала удалите 2 мм торца, затем получите Ø36 на Z−28…−2. Новый торец Z−2, у крепления сохраните Ø40. Проверьте оба независимых размерных признака.",
+    "lesson": "turning-plan",
+    "source": "G21 G18 G90 G54\nT0101\nS800 M3\nG0 X44 Z3\nG0 Z-2\nG1 X0 F100\nZ3\nG0 X44\nG1 X36 F120\nZ-28\nX44\nG0 Z5\nM5\nM30",
+    "checks": [
+      {
+        "name": "Новый торец",
+        "expected": -2,
+        "probe": "front"
+      },
+      {
+        "name": "Диаметр ступени",
+        "expected": 36,
+        "probe": "diameter",
+        "z": -15
+      },
+      {
+        "name": "Сохранённый диаметр",
+        "expected": 40,
+        "probe": "diameter",
+        "z": -36
+      }
+    ],
+    "profile": "firecnc-din-v1-turning",
+    "stockId": "cylinder-40x60",
+    "fixtureId": "chuck-15",
+    "allowedTools": [
+      1
+    ],
+    "initialOffset": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "resolution": 0.25,
+    "grading": {
+      "geometry": 70,
+      "safety": 30,
+      "criticalCollision": true
+    },
+    "target": {
+      "kind": "turning",
+      "diameter": 40,
+      "length": 60,
+      "front": -2,
+      "regions": [
+        {
+          "from": -28,
+          "to": -2,
+          "diameter": 36
+        }
+      ]
+    },
+    "initialSource": "(Напишите программу по чертежу: Торец и ступень)\nG21 G18 G90 G54\nT0101\nS800 M3\n(Добавьте безопасный подвод, рабочие проходы и отвод)\nM5\nM30"
+  },
+  {
+    "id": "turn-fix-rapid",
+    "version": 2,
+    "kind": "turning",
+    "title": "Исправление опасного подвода",
+    "goal": "В исходном упражнении быстрый ход входит в материал. Исправьте подвод и получите Ø38 на Z−35…0. Одного устранения синтаксической ошибки недостаточно: проверьте результат и безопасность.",
+    "lesson": "turning-g0g1",
+    "source": "G21 G18 G90 G54\nT0101\nS800 M3\nG0 X44 Z3\nG1 X38 F130\nZ-35\nX44\nG0 Z5\nM5\nM30",
+    "checks": [
+      {
+        "name": "Обточенный диаметр",
+        "expected": 38,
+        "probe": "diameter",
+        "z": -20
+      },
+      {
+        "name": "Сохранённый участок",
+        "expected": 40,
+        "probe": "diameter",
+        "z": -40
+      }
+    ],
+    "profile": "firecnc-din-v1-turning",
+    "stockId": "cylinder-40x60",
+    "fixtureId": "chuck-15",
+    "allowedTools": [
+      1
+    ],
+    "initialOffset": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "resolution": 0.25,
+    "grading": {
+      "geometry": 70,
+      "safety": 30,
+      "criticalCollision": true
+    },
+    "target": {
+      "kind": "turning",
+      "diameter": 40,
+      "length": 60,
+      "front": 0,
+      "regions": [
+        {
+          "from": -35,
+          "to": 0,
+          "diameter": 38
+        }
+      ]
+    },
+    "initialSource": "G21 G18 G90 G54\nT0101\nS800 M3\nG0 X44 Z3\nG0 X38 Z-10\nG1 F130\nZ-35\nX44\nG0 Z5\nM5\nM30"
+  },
+  {
+    "id": "mill-relative-slot",
+    "version": 2,
+    "kind": "milling",
+    "title": "Паз в относительных координатах",
+    "goal": "Получите сквозной вдоль X паз по Y12 шириной 6 мм и глубиной 2 мм. Используйте фрезу 2 Ø6; отследите абсолютный подвод и относительное продольное перемещение.",
+    "lesson": "milling-g90",
+    "source": "G21 G17 G90 G54\nT2 M6\nS1600 M3\nG0 X-6 Y12 Z5\nG1 Z-2 F80\nG91 G1 X72 F150\nG90 G0 Z5\nM5\nM30",
+    "checks": [
+      {
+        "name": "Дно паза",
+        "expected": 2,
+        "probe": "depth",
+        "x": 30,
+        "y": 12
+      },
+      {
+        "name": "Поверхность вне паза",
+        "expected": 0,
+        "probe": "depth",
+        "x": 30,
+        "y": 20
+      }
+    ],
+    "profile": "firecnc-din-v1-milling",
+    "stockId": "plate-60x40x15",
+    "fixtureId": "vise-top-minus5",
+    "allowedTools": [
+      2
+    ],
+    "initialOffset": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "resolution": 0.25,
+    "grading": {
+      "geometry": 70,
+      "safety": 30,
+      "criticalCollision": true
+    },
+    "target": {
+      "kind": "milling",
+      "width": 60,
+      "depth": 40,
+      "thickness": 15,
+      "regions": [
+        {
+          "left": 0,
+          "right": 60,
+          "bottom": 9,
+          "top": 15,
+          "depth": 2,
+          "radius": 0
+        }
+      ]
+    },
+    "initialSource": "(Напишите программу по чертежу: Паз в относительных координатах)\nG21 G17 G90 G54\nT2 M6\nS1600 M3\n(Добавьте безопасный подвод, рабочие проходы и отвод)\nM5\nM30"
+  },
+  {
+    "id": "mill-two-slots",
+    "version": 2,
+    "kind": "milling",
+    "title": "Два паза с разной глубиной",
+    "goal": "На плите 60×40×15 получите пазы Ø6-инструментом: по Y10 глубиной 3 мм и по Y30 глубиной 2 мм, оба вдоль всей X. Между проходами используйте безопасный подъём.",
+    "lesson": "milling-plan",
+    "source": "G21 G17 G90 G54\nT2 M6\nS1600 M3\nG0 X-8 Y10 Z5\nG1 Z-3 F80\nX68 F180\nG0 Z5\nX-8 Y30\nG1 Z-2 F80\nX68 F180\nG0 Z5\nM5\nM30",
+    "checks": [
+      {
+        "name": "Первый паз",
+        "expected": 3,
+        "probe": "depth",
+        "x": 30,
+        "y": 10
+      },
+      {
+        "name": "Второй паз",
+        "expected": 2,
+        "probe": "depth",
+        "x": 30,
+        "y": 30
+      },
+      {
+        "name": "Перемычка",
+        "expected": 0,
+        "probe": "depth",
+        "x": 30,
+        "y": 20
+      }
+    ],
+    "profile": "firecnc-din-v1-milling",
+    "stockId": "plate-60x40x15",
+    "fixtureId": "vise-top-minus5",
+    "allowedTools": [
+      2
+    ],
+    "initialOffset": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "resolution": 0.25,
+    "grading": {
+      "geometry": 70,
+      "safety": 30,
+      "criticalCollision": true
+    },
+    "target": {
+      "kind": "milling",
+      "width": 60,
+      "depth": 40,
+      "thickness": 15,
+      "regions": [
+        {
+          "left": 0,
+          "right": 60,
+          "bottom": 7,
+          "top": 13,
+          "depth": 3,
+          "radius": 0
+        },
+        {
+          "left": 0,
+          "right": 60,
+          "bottom": 27,
+          "top": 33,
+          "depth": 2,
+          "radius": 0
+        }
+      ]
+    },
+    "initialSource": "(Напишите программу по чертежу: Два паза с разной глубиной)\nG21 G17 G90 G54\nT2 M6\nS1600 M3\n(Добавьте безопасный подвод, рабочие проходы и отвод)\nM5\nM30"
+  },
+  {
+    "id": "mill-pocket-six",
+    "version": 2,
+    "kind": "milling",
+    "title": "Карман фрезой Ø6",
+    "goal": "Получите карман X12…48, Y8…32, глубиной 3 мм с внутренними R3. Подберите границы центра фрезы 2, заполните область проходами и выполните чистовой обход.",
+    "lesson": "milling-pocket",
+    "source": "G21 G17 G90 G54\nT2 M6\nS1600 M3\nG0 X15 Y11 Z5\nG1 Z-3 F80\nX45 F180\nY16\nX15\nY21\nX45\nY26\nX15\nY29\nX45\nY11\nX15\nY29\nX45\nG0 Z5\nM5\nM30",
+    "checks": [
+      {
+        "name": "Центр кармана",
+        "expected": 3,
+        "probe": "depth",
+        "x": 30,
+        "y": 20
+      },
+      {
+        "name": "Левая зона дна",
+        "expected": 3,
+        "probe": "depth",
+        "x": 14,
+        "y": 15
+      },
+      {
+        "name": "Вне кармана",
+        "expected": 0,
+        "probe": "depth",
+        "x": 5,
+        "y": 20
+      }
+    ],
+    "profile": "firecnc-din-v1-milling",
+    "stockId": "plate-60x40x15",
+    "fixtureId": "vise-top-minus5",
+    "allowedTools": [
+      2
+    ],
+    "initialOffset": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "resolution": 0.25,
+    "grading": {
+      "geometry": 70,
+      "safety": 30,
+      "criticalCollision": true
+    },
+    "target": {
+      "kind": "milling",
+      "width": 60,
+      "depth": 40,
+      "thickness": 15,
+      "regions": [
+        {
+          "left": 12,
+          "right": 48,
+          "bottom": 8,
+          "top": 32,
+          "depth": 3,
+          "radius": 3
+        }
+      ]
+    },
+    "initialSource": "(Напишите программу по чертежу: Карман фрезой Ø6)\nG21 G17 G90 G54\nT2 M6\nS1600 M3\n(Добавьте безопасный подвод, рабочие проходы и отвод)\nM5\nM30"
+  },
+  {
+    "id": "mill-half-plane",
+    "version": 2,
+    "kind": "milling",
+    "title": "Ступень на половине плиты",
+    "goal": "Понизьте правую половину X30…60 всей плиты по Y0…40 на 2 мм. Слева от X30 сохраните исходную верхнюю поверхность. Фреза 1 Ø10.",
+    "lesson": "milling-lines",
+    "source": "G21 G17 G90 G54\nT1 M6\nS1600 M3\nG0 X35 Y-8 Z5\nG1 Z-2 F100\nY48 F220\nX43\nY-8\nX51\nY48\nX59\nY-8\nG0 Z5\nM5\nM30",
+    "checks": [
+      {
+        "name": "Правая половина",
+        "expected": 2,
+        "probe": "depth",
+        "x": 45,
+        "y": 20
+      },
+      {
+        "name": "Левая половина",
+        "expected": 0,
+        "probe": "depth",
+        "x": 15,
+        "y": 20
+      },
+      {
+        "name": "У правого края",
+        "expected": 2,
+        "probe": "depth",
+        "x": 58,
+        "y": 35
+      }
+    ],
+    "profile": "firecnc-din-v1-milling",
+    "stockId": "plate-60x40x15",
+    "fixtureId": "vise-top-minus5",
+    "allowedTools": [
+      1
+    ],
+    "initialOffset": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "resolution": 0.25,
+    "grading": {
+      "geometry": 70,
+      "safety": 30,
+      "criticalCollision": true
+    },
+    "target": {
+      "kind": "milling",
+      "width": 60,
+      "depth": 40,
+      "thickness": 15,
+      "regions": [
+        {
+          "left": 30,
+          "right": 60,
+          "bottom": 0,
+          "top": 40,
+          "depth": 2,
+          "radius": 0
+        }
+      ]
+    },
+    "initialSource": "(Напишите программу по чертежу: Ступень на половине плиты)\nG21 G17 G90 G54\nT1 M6\nS1600 M3\n(Добавьте безопасный подвод, рабочие проходы и отвод)\nM5\nM30"
+  },
+  {
+    "id": "mill-frame",
+    "version": 2,
+    "kind": "milling",
+    "title": "Контур вокруг выступа",
+    "goal": "Пройдите прямоугольный контур центра X17…43, Y7…33 на глубине 2 мм фрезой 2 Ø6. Сохраните центральный выступ X20…40, Y10…30 и материал за пределами канала.",
+    "lesson": "milling-plan",
+    "source": "G21 G17 G90 G54\nT2 M6\nS1600 M3\nG0 X17 Y7 Z5\nG1 Z-2 F80\nX43 F160\nY33\nX17\nY7\nG0 Z5\nM5\nM30",
+    "checks": [
+      {
+        "name": "Канал слева",
+        "expected": 2,
+        "probe": "depth",
+        "x": 17,
+        "y": 20
+      },
+      {
+        "name": "Центральный выступ",
+        "expected": 0,
+        "probe": "depth",
+        "x": 30,
+        "y": 20
+      },
+      {
+        "name": "Материал снаружи",
+        "expected": 0,
+        "probe": "depth",
+        "x": 5,
+        "y": 20
+      }
+    ],
+    "profile": "firecnc-din-v1-milling",
+    "stockId": "plate-60x40x15",
+    "fixtureId": "vise-top-minus5",
+    "allowedTools": [
+      2
+    ],
+    "initialOffset": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "resolution": 0.25,
+    "grading": {
+      "geometry": 70,
+      "safety": 30,
+      "criticalCollision": true
+    },
+    "target": {
+      "kind": "milling",
+      "width": 60,
+      "depth": 40,
+      "thickness": 15,
+      "regions": [
+        {
+          "left": 14,
+          "right": 46,
+          "bottom": 4,
+          "top": 10,
+          "depth": 2,
+          "radius": 3
+        },
+        {
+          "left": 14,
+          "right": 46,
+          "bottom": 30,
+          "top": 36,
+          "depth": 2,
+          "radius": 3
+        },
+        {
+          "left": 14,
+          "right": 20,
+          "bottom": 4,
+          "top": 36,
+          "depth": 2,
+          "radius": 3
+        },
+        {
+          "left": 40,
+          "right": 46,
+          "bottom": 4,
+          "top": 36,
+          "depth": 2,
+          "radius": 3
+        }
+      ]
+    },
+    "initialSource": "(Напишите программу по чертежу: Контур вокруг выступа)\nG21 G17 G90 G54\nT2 M6\nS1600 M3\n(Добавьте безопасный подвод, рабочие проходы и отвод)\nM5\nM30"
+  },
+  {
+    "id": "mill-circle",
+    "version": 2,
+    "kind": "milling",
+    "title": "Круговая обработанная область",
+    "goal": "Получите круглую область Ø20 с центром X30 Y20 глубиной 2 мм. Используйте фрезу Ø10 и полную окружность её центра радиуса 5 мм с I/J. Проверяйте весь диск, а не только линию.",
+    "lesson": "milling-arcs",
+    "source": "G21 G17 G90 G54\nT1 M6\nS1600 M3\nG0 X35 Y20 Z5\nG1 Z-2 F80\nG2 X35 Y20 I-5 J0 F160\nG0 Z5\nM5\nM30",
+    "checks": [
+      {
+        "name": "Центр круга",
+        "expected": 2,
+        "probe": "depth",
+        "x": 30,
+        "y": 20
+      },
+      {
+        "name": "Внутри у края",
+        "expected": 2,
+        "probe": "depth",
+        "x": 39,
+        "y": 20
+      },
+      {
+        "name": "Вне круга",
+        "expected": 0,
+        "probe": "depth",
+        "x": 42,
+        "y": 20
+      }
+    ],
+    "profile": "firecnc-din-v1-milling",
+    "stockId": "plate-60x40x15",
+    "fixtureId": "vise-top-minus5",
+    "allowedTools": [
+      1
+    ],
+    "initialOffset": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "resolution": 0.25,
+    "grading": {
+      "geometry": 70,
+      "safety": 30,
+      "criticalCollision": true
+    },
+    "target": {
+      "kind": "milling",
+      "width": 60,
+      "depth": 40,
+      "thickness": 15,
+      "regions": [
+        {
+          "left": 20,
+          "right": 40,
+          "bottom": 10,
+          "top": 30,
+          "depth": 2,
+          "radius": 10
+        }
+      ]
+    },
+    "initialSource": "(Напишите программу по чертежу: Круговая обработанная область)\nG21 G17 G90 G54\nT1 M6\nS1600 M3\n(Добавьте безопасный подвод, рабочие проходы и отвод)\nM5\nM30"
+  },
+  {
+    "id": "mill-fix-plunge",
+    "version": 2,
+    "kind": "milling",
+    "title": "Исправление быстрого погружения",
+    "goal": "В программе кармана ошибочно задан быстрый вход Z−3 в материал. Исправьте его, затем получите карман X22…38, Y12…28, глубиной 3 мм с R5. Фреза 1 Ø10, ноль на верхней поверхности.",
+    "lesson": "milling-plan",
+    "source": "G21 G17 G90 G54\nT1 M6\nS1600 M3\nG0 X27 Y17 Z5\nG1 Z-3 F80\nX33 F150\nY20\nX27\nY23\nX33\nY17\nX27\nY23\nX33\nG0 Z5\nM5\nM30",
+    "checks": [
+      {
+        "name": "Дно кармана",
+        "expected": 3,
+        "probe": "depth",
+        "x": 30,
+        "y": 20
+      },
+      {
+        "name": "Поверхность снаружи",
+        "expected": 0,
+        "probe": "depth",
+        "x": 10,
+        "y": 20
+      },
+      {
+        "name": "Сохранённый угол",
+        "expected": 0,
+        "probe": "depth",
+        "x": 22.25,
+        "y": 12.25
+      }
+    ],
+    "profile": "firecnc-din-v1-milling",
+    "stockId": "plate-60x40x15",
+    "fixtureId": "vise-top-minus5",
+    "allowedTools": [
+      1
+    ],
+    "initialOffset": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "resolution": 0.25,
+    "grading": {
+      "geometry": 70,
+      "safety": 30,
+      "criticalCollision": true
+    },
+    "target": {
+      "kind": "milling",
+      "width": 60,
+      "depth": 40,
+      "thickness": 15,
+      "regions": [
+        {
+          "left": 22,
+          "right": 38,
+          "bottom": 12,
+          "top": 28,
+          "depth": 3,
+          "radius": 5
+        }
+      ]
+    },
+    "initialSource": "G21 G17 G90 G54\nT1 M6\nS1600 M3\nG0 X27 Y17 Z5\nG0 Z-3\nG1 F80\nX33 F150\nY20\nX27\nY23\nX33\nY17\nX27\nY23\nX33\nG0 Z5\nM5\nM30"
   }
 ]

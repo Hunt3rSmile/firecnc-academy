@@ -5,7 +5,7 @@ export interface TurningStock {kind:'turning';resolution:number;nr:number;nz:num
 export interface MillingStock {kind:'milling';resolution:number;nx:number;ny:number;width:number;depth:number;bottom:number;heights:Float32Array}
 export type Material = TurningStock | MillingStock;
 export interface Collision {code:string;line:number;message:string;fix:string;objects:string[];hitPosition:Vec3}
-export interface SimulationResult {material:Material;completed:number;state:ModalState;collision:Collision|null;removedVolume:number;samples:number;uncertainty:number}
+export interface SimulationResult {material:Material;completed:number;state:ModalState;collision:Collision|null;removedVolume:number;samples:number;uncertainty:number;usedTools:number[];toolLines:Record<number,number>}
 export interface SimulationOptions {kind:MachineKind;resolution?:number;frame?:number;offset?:Vec3;setup?:WorkshopSetup;onProgress?:(n:number)=>void}
 type Box={min:Vec3;max:Vec3;name:string};
 export const SIM_LIMITS={cells:250000,samples:300000,cellVisits:20000000};
@@ -33,6 +33,7 @@ export function simulate(program:Program,options:SimulationOptions):SimulationRe
   const setup=options.setup??defaultSetup(options.kind),material=createMaterial(options.kind,options.resolution,setup),offset=options.offset??{x:0,y:0,z:0};
   let state=program.events[0]?initialState({kind:options.kind,initialPosition:program.events[0].from,offset}):initialState({kind:options.kind,offset});
   let completed=0,collision:Collision|null=null,samples=0,visits=0;
+  const toolLines:Record<number,number>={};
   const actualStep=material.kind==='turning'?Math.min(material.resolution,material.length/material.nz):Math.min(material.width/material.nx,material.depth/material.ny);
   const originalVolume=volume(material),h=actualStep/2,margin=h/2+0.02;
   const fail=(code:string,e:MachineEvent,p:Vec3,message:string,fix:string,objects:string[]):never=>{throw {simulationCollision:true,collision:{code,line:e.line,hitPosition:p,message,fix,objects}};};
@@ -102,6 +103,7 @@ export function simulate(program:Program,options:SimulationOptions):SimulationRe
                   if(part.low>=top-1e-7||part.high<=material.bottom)continue;
                   if(!cut)fail('HOLDER_STOCK',event,p,`${part.name} пересекает материал заготовки.`,'Глубина превышает доступную режущую длину или мешает держатель.',[part.name,'Заготовка']);
                   if(event.motion===0)fail('RAPID_STOCK',event,p,'Быстрый ход фрезы входит в материал.','Отведите фрезу над поверхностью, затем используйте G1.',['Фреза','Заготовка']);
+                  if(top>part.high+margin)fail('CUTTING_LENGTH',event,p,'Новый боковой слой выше режущей части фрезы.','Обрабатывайте материал послойно: доступная режущая длина инструмента 12 мм. Поле высот не моделирует нависающую несрезанную крышку.',['Режущая часть','Заготовка']);
                   material.heights[cell]=Math.max(material.bottom,Math.min(top,p.z));
                 }
               }
@@ -110,6 +112,7 @@ export function simulate(program:Program,options:SimulationOptions):SimulationRe
         }
       }
       state=structuredClone(event.state);completed=index+1;
+      if(event.motion!==null&&event.motion!==0&&event.state.tool!==null&&toolLines[event.state.tool]===undefined)toolLines[event.state.tool]=event.line;
       options.onProgress?.((index+1)/Math.max(1,frame));
     } catch(e) {
       // A failed block restores material AND machine state to its beginning.
@@ -118,7 +121,7 @@ export function simulate(program:Program,options:SimulationOptions):SimulationRe
       throw e;
     }
   }
-  return {material,completed,state,collision,removedVolume:originalVolume-volume(material),samples,uncertainty:(material.kind==='turning'?Math.max(material.resolution,material.length/material.nz):Math.max(material.width/material.nx,material.depth/material.ny))*Math.SQRT2+h/2+0.02};
+  return {material,completed,state,collision,removedVolume:originalVolume-volume(material),samples,uncertainty:(material.kind==='turning'?Math.max(material.resolution,material.length/material.nz):Math.max(material.width/material.nx,material.depth/material.ny))*Math.SQRT2+h/2+0.02,usedTools:Object.keys(toolLines).map(Number),toolLines};
 }
 export function volume(material:Material):number {
   let result=0;
