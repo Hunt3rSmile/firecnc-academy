@@ -8,11 +8,11 @@ const root=path.resolve(platform==='win32'?'release/win-unpacked':'release/linux
 const executablePath=path.join(root,platform==='win32'?'FireCNC Academy.exe':'firecnc-academy');
 await stat(executablePath);
 const asar=path.join(root,'resources/app.asar'),files=listPackage(asar);
-const forbidden=files.filter(f=>/(?:private-keys|license-issuer|\/\.local\/|\/issued\/|\/tests\/fixtures\/|\.(?:pem|fcnclic|pfx|key)$)/i.test(f));
+const forbidden=files.filter(f=>/(?:private-keys|license-issuer|\/\.local\/|\/issued\/|\/tests\/fixtures\/|\.(?:pem|fcnclic|pfx|key)$)/i.test(f.replace(/\\/g,'/')));
 if(forbidden.length)throw new Error('В пакете запрещённые файлы: '+forbidden.join(', '));
-const main=extractFile(asar,'dist/desktop/main.cjs').toString();
+const main=extractFile(asar,path.join('dist','desktop','main.cjs')).toString();
 if(/-----BEGIN (?:ENCRYPTED )?PRIVATE KEY-----/.test(main))throw new Error('Закрытый ключ внутри main bundle.');
-const info=JSON.parse(extractFile(asar,'dist/build-info.json').toString());
+const info=JSON.parse(extractFile(asar,path.join('dist','build-info.json')).toString());
 if(info.development)throw new Error('Для приёмки нужен release-build.');
 await stat(path.join(root,`resources/app.asar.unpacked/node_modules/better-sqlite3/prebuilds/${platform}-x64.node`));
 const directory=await mkdtemp(path.join(os.tmpdir(),'FireCNC-упаковка-'));
