@@ -8,7 +8,7 @@ import {Worker} from 'node:worker_threads';
 import {Store} from './store';
 import {installationHash,verifyLicense,strictJSON,type TrustStore} from '@firecnc/licensing';
 import {projectSchema,DEMO_SOURCES,type LicenseView,type LicenseModule,type AppState,type Result,type CNCProject,type PracticeAttempt} from '@firecnc/contracts';
-import {lessons,introQuestions,createCoordinateAttempt,answerCoordinate,advanceCoordinate,exercises,type CoordinateAttempt} from '@firecnc/learning';
+import {lessons,introQuestions,createCoordinateAttempt,answerCoordinate,advanceCoordinate,exercises,instrumentKind,measurementMode,createMeasurementAttempt,answerMeasurement,advanceMeasurement,type CoordinateAttempt} from '@firecnc/learning';
 import {UpdateChecker} from './updates';
 import {isDefaultSetup} from '@firecnc/simulation';
 import releaseSource from '../../../config/release.json';
@@ -127,6 +127,16 @@ async function boot():Promise<void> {
     const result=answerCoordinate(current,value.values as Record<string,string>,Date.now());store.saveCoordinate(result);return result;
   });
   handle('coordinateNext',z.string().uuid(),id=>{const current=store.coordinate(id);if(!current)throw new Error('Попытка не найдена.');coordinateAccess(current);const result=advanceCoordinate(current);store.saveCoordinate(result);return result;});
+  handle('measurementCurrent',empty,()=>store.measurement());
+  handle('measurementHistory',empty,()=>store.measurementHistory());
+  handle('measurementStart',z.strictObject({kind:instrumentKind,mode:measurementMode,seed:z.number().int().min(0).max(0xffffffff).optional()}),value=>{
+    if(value.mode!=='explain')requireModule('measurements');
+    const a=createMeasurementAttempt({id:randomUUID(),kind:value.kind,mode:value.mode,seed:value.seed??randomBytes(4).readUInt32LE(),now:Date.now()});store.saveMeasurement(a);return a;
+  });
+  handle('measurementAnswer',z.strictObject({id:z.string().uuid(),value:z.string().max(32)}),value=>{
+    requireModule('measurements');const a=store.measurement(value.id);if(!a)throw new Error('Попытка измерения не найдена.');const next=answerMeasurement(a,value.value,Date.now());store.saveMeasurement(next);return next;
+  });
+  handle('measurementNext',z.string().uuid(),id=>{requireModule('measurements');const a=store.measurement(id);if(!a)throw new Error('Попытка измерения не найдена.');const next=advanceMeasurement(a);store.saveMeasurement(next);return next;});
   handle('settings',z.strictObject({theme:z.enum(['dark','light']),split:z.number().min(30).max(75)}),s=>{store.set('theme',s.theme);store.set('split',String(s.split));});
   handle('lessonComplete',z.string().max(80),id=>{if(!lessons.some(l=>l.id===id))throw new Error('Урок не найден.');if(id!==lessons[0]!.id)requireModule('theory');store.complete(id);return state();});
   handle('quizSubmit',z.record(z.string().max(80),z.array(z.string().regex(/^[0-7]$/)).max(8)).refine(a=>Object.keys(a).length===introQuestions.length&&introQuestions.every(q=>Object.hasOwn(a,q.id))),a=>{store.submit(a);return state();});
@@ -148,7 +158,7 @@ async function boot():Promise<void> {
   handle('licenseOpen',empty,async()=>{const r=await dialog.showOpenDialog(win,{properties:['openFile'],filters:[{name:'Лицензия FireCNC',extensions:['fcnclic']}]});return r.canceled?null:importLicense(await boundedRead(r.filePaths[0]!,12000));});
   handle('licenseExport',empty,()=>{const token=store.get('license');if(!token)throw new Error('Нет импортированной лицензии.');return save(token+'\n','fcnclic','Экспортировать лицензию');});
   handle('activationRequest',empty,()=>save(JSON.stringify({version:1,productId:'firecnc-academy',installationHash:installationHash(store.get('installationId')!)},null,2),'json','Сохранить запрос для владельца'));
-  handle('exportResults',empty,()=>save(JSON.stringify({version:2,profile:store.profile(),completed:store.completed(),attempts:store.attempts(),coordinateAttempts:store.coordinateHistory(),practiceAttempts:store.practiceHistory()},null,2),'json','Экспортировать результаты'));
+  handle('exportResults',empty,()=>save(JSON.stringify({version:2,profile:store.profile(),completed:store.completed(),attempts:store.attempts(),coordinateAttempts:store.coordinateHistory(),practiceAttempts:store.practiceHistory(),measurementAttempts:store.measurementHistory()},null,2),'json','Экспортировать результаты'));
   handle('backup',empty,async()=>{const r=await dialog.showSaveDialog(win,{title:'Согласованная резервная копия SQLite',defaultPath:'FireCNC-backup.sqlite'});if(r.canceled||!r.filePath)return false;await store.backup(r.filePath);return true;});
   await createWindow();
   updates.start();

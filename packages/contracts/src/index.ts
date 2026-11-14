@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { MachineKind, Program } from '@firecnc/core';
 import type {CoordinateAttempt} from '@firecnc/learning';
+import type {MeasurementAttempt,InstrumentKind} from '@firecnc/learning';
 import type {assess} from '@firecnc/learning';
 import type {GeometryTarget} from '../../learning/src/geometry-grade';
 import {defaultSetup,validateSetup} from '@firecnc/simulation';
@@ -43,6 +44,11 @@ export interface DesktopAPI {
   practiceSubmit(value:{exerciseId:string;project:CNCProjectInput}):Promise<Result<PracticeAttempt>>;
   practiceHistory():Promise<Result<PracticeAttempt[]>>;
   practiceCancel():Promise<Result<void>>;
+  measurementCurrent():Promise<Result<MeasurementAttempt|null>>;
+  measurementStart(value:{kind:InstrumentKind;mode:MeasurementAttempt['mode'];seed?:number}):Promise<Result<MeasurementAttempt>>;
+  measurementAnswer(value:{id:string;value:string}):Promise<Result<MeasurementAttempt>>;
+  measurementNext(id:string):Promise<Result<MeasurementAttempt>>;
+  measurementHistory():Promise<Result<MeasurementAttempt[]>>;
   settings(value:{theme:'dark'|'light';split:number}):Promise<Result<void>>;
   projectSave(project:CNCProjectInput):Promise<Result<void>>;
   projectImport():Promise<Result<CNCProject|null>>;

@@ -27,3 +27,4 @@ export {decimalAnswer} from './numbers';
 export * from './coordinates';
 
 export {exercises,assess} from './exercises';
+export * from './measurements';
