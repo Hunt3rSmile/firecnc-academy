@@ -129,7 +129,7 @@
       }
     ],
     "appImage": {
-      "artifactName": "FireCNC-Academy-${version}-linux-${arch}.${ext}"
+      "artifactName": "FireCNC-Academy-${version}-linux-x64.${ext}"
     }
   },
   "repository": {
