@@ -23,10 +23,7 @@ export function grade(answers:Record<string,string[]>,bank:Question[]=introQuest
   const details=bank.map(question=>{const selected=answers[question.id]??[];return {question,selected,correct:selected.length===question.correct.length&&new Set(selected).size===selected.length&&question.correct.every(i=>selected.includes(String(i)))};});
   return {score:details.filter(d=>d.correct).length,total:details.length,details};
 }
-export function decimalAnswer(value:string):number|null {
-  const normalized=value.trim().replace(',','.');
-  if(!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(normalized))return null;
-  const result=Number(normalized);return Number.isFinite(result)?result:null;
-}
+export {decimalAnswer} from './numbers';
+export * from './coordinates';
 
 export {exercises,assess} from './exercises';

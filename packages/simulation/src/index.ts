@@ -1,22 +1,26 @@
 import {distance,interpolate,initialState,type Vec3,type Program,type MachineKind,type ModalState,type MachineEvent} from '@firecnc/core';
+import {defaultSetup,validateSetup,type WorkshopSetup} from './setup';
+export * from './setup';
 export interface TurningStock {kind:'turning';resolution:number;nr:number;nz:number;radius:number;length:number;zMin:number;occupied:Uint8Array}
 export interface MillingStock {kind:'milling';resolution:number;nx:number;ny:number;width:number;depth:number;bottom:number;heights:Float32Array}
 export type Material = TurningStock | MillingStock;
 export interface Collision {code:string;line:number;message:string;fix:string;objects:string[];hitPosition:Vec3}
 export interface SimulationResult {material:Material;completed:number;state:ModalState;collision:Collision|null;removedVolume:number;samples:number;uncertainty:number}
-export interface SimulationOptions {kind:MachineKind;resolution?:number;frame?:number;offset?:Vec3;onProgress?:(n:number)=>void}
+export interface SimulationOptions {kind:MachineKind;resolution?:number;frame?:number;offset?:Vec3;setup?:WorkshopSetup;onProgress?:(n:number)=>void}
 type Box={min:Vec3;max:Vec3;name:string};
 export const SIM_LIMITS={cells:250000,samples:300000,cellVisits:20000000};
-export function createMaterial(kind:MachineKind,resolution=0.25):Material {
+export function createMaterial(kind:MachineKind,resolution=0.25,setup:WorkshopSetup=defaultSetup(kind)):Material {
   if(!Number.isFinite(resolution)||resolution<0.1||resolution>1)throw new Error('Шаг сетки должен быть от 0,1 до 1 мм.');
-  if(kind==='turning') {
-    const nr=Math.ceil(20/resolution),nz=Math.ceil(60/resolution);
+  if(kind!==setup.kind)throw new Error('Заготовка не соответствует типу станка.');
+  const errors=validateSetup(setup);if(errors.length)throw new Error(errors.join(' '));
+  if(setup.kind==='turning') {
+    const radius=setup.diameter/2,nr=Math.ceil(radius/resolution),nz=Math.ceil(setup.length/resolution);
     if(nr*nz>SIM_LIMITS.cells)throw new Error('Сетка слишком велика.');
-    return {kind,resolution:20/nr,nr,nz,radius:20,length:60,zMin:-60,occupied:new Uint8Array(nr*nz).fill(1)};
+    return {kind:'turning',resolution:radius/nr,nr,nz,radius,length:setup.length,zMin:-setup.length,occupied:new Uint8Array(nr*nz).fill(1)};
   }
-  const nx=Math.ceil(60/resolution),ny=Math.ceil(40/resolution);
+  const nx=Math.ceil(setup.width/resolution),ny=Math.ceil(setup.depth/resolution);
   if(nx*ny>SIM_LIMITS.cells)throw new Error('Сетка превышает 250000 ячеек. Увеличьте шаг.');
-  return {kind,resolution:60/nx,nx,ny,width:60,depth:40,bottom:-15,heights:new Float32Array(nx*ny)};
+  return {kind:'milling',resolution:setup.width/nx,nx,ny,width:setup.width,depth:setup.depth,bottom:-setup.thickness,heights:new Float32Array(nx*ny)};
 }
 function overlap(a:Box,b:Box,margin=0):boolean {return (['x','y','z'] as const).every(k=>a.min[k]-margin<=b.max[k]&&a.max[k]+margin>=b.min[k]);}
 function cylinderBox(p:Vec3,r:number,low:number,high:number,b:Box,margin:number):boolean {
@@ -26,12 +30,14 @@ function cylinderBox(p:Vec3,r:number,low:number,high:number,b:Box,margin:number)
 }
 const box=(x:number,y:number,z:number,xx:number,yy:number,zz:number,name:string):Box=>({min:{x,y,z},max:{x:xx,y:yy,z:zz},name});
 export function simulate(program:Program,options:SimulationOptions):SimulationResult {
-  const material=createMaterial(options.kind,options.resolution),offset=options.offset??{x:0,y:0,z:0};
+  const setup=options.setup??defaultSetup(options.kind),material=createMaterial(options.kind,options.resolution,setup),offset=options.offset??{x:0,y:0,z:0};
   let state=program.events[0]?initialState({kind:options.kind,initialPosition:program.events[0].from,offset}):initialState({kind:options.kind,offset});
   let completed=0,collision:Collision|null=null,samples=0,visits=0;
-  const originalVolume=volume(material),h=material.resolution/2,margin=h/2+0.02;
+  const actualStep=material.kind==='turning'?Math.min(material.resolution,material.length/material.nz):Math.min(material.width/material.nx,material.depth/material.ny);
+  const originalVolume=volume(material),h=actualStep/2,margin=h/2+0.02;
   const fail=(code:string,e:MachineEvent,p:Vec3,message:string,fix:string,objects:string[]):never=>{throw {simulationCollision:true,collision:{code,line:e.line,hitPosition:p,message,fix,objects}};};
-  const fixtures=options.kind==='turning'?[box(0,-30,-80,35,30,-45,'Патрон')]:[box(-5,-8,-20,65,0,-5,'Неподвижная губка тисков'),box(-5,40,-20,65,48,-5,'Подвижная губка тисков'),box(-80,-60,-25,120,100,-20,'Стол')];
+  const chuckFront=setup.kind==='turning'?-setup.length+setup.clampLength:0;
+  const fixtures=setup.kind==='turning'?[box(0,-Math.max(30,setup.diameter/2+10),chuckFront-35,Math.max(35,setup.diameter/2+10),Math.max(30,setup.diameter/2+10),chuckFront,'Патрон')]:[box(-5,-8,-setup.thickness-5,setup.width+5,0,-setup.thickness+setup.jawGrip,'Неподвижная губка тисков'),box(-5,setup.depth,-setup.thickness-5,setup.width+5,setup.depth+8,-setup.thickness+setup.jawGrip,'Подвижная губка тисков'),box(-80,-60,-setup.thickness-10,Math.max(120,setup.width+20),Math.max(100,setup.depth+20),-setup.thickness-5,'Стол')];
   const frame=Math.min(options.frame??program.events.length,program.events.length);
   for(let index=0;index<frame;index++) {
     const event=program.events[index]!;
@@ -57,7 +63,7 @@ export function simulate(program:Program,options:SimulationOptions):SimulationRe
               const cutter=box(p.x,-1,p.z,p.x+6,1,p.z+width,'Режущая часть');
               const shank=box(p.x+6,-2,p.z+3,p.x+10,2,p.z+8,'Тело резца');
               const holder=box(p.x+10,-4,p.z+4,p.x+20,4,p.z+14,'Державка');
-              for(const fixture of fixtures)for(const part of [cutter,shank,holder])if(overlap(part,fixture,margin))fail('FIXTURE',event,p,`${part.name}: столкновение с узлом «${fixture.name}».`,'Отведите инструмент из защищённой зоны Z ≤ −45 мм. Сначала проверьте установку.',[part.name,fixture.name]);
+              for(const fixture of fixtures)for(const part of [cutter,shank,holder])if(overlap(part,fixture,margin))fail('FIXTURE',event,p,`${part.name}: столкновение с узлом «${fixture.name}».`,`Отведите инструмент из защищённой зоны Z ≤ ${chuckFront} мм. Сначала проверьте установку.`,[part.name,fixture.name]);
               const query=(part:Box,cut:boolean)=>{
                 // Broad phase restricts work to the tool footprint in the meridian grid.
                 const r0=Math.max(0,Math.floor(part.min.x/material.resolution)),r1=Math.min(material.nr-1,Math.floor(part.max.x/material.resolution));
@@ -112,7 +118,7 @@ export function simulate(program:Program,options:SimulationOptions):SimulationRe
       throw e;
     }
   }
-  return {material,completed,state,collision,removedVolume:originalVolume-volume(material),samples,uncertainty:material.resolution*Math.SQRT2+h/2+0.02};
+  return {material,completed,state,collision,removedVolume:originalVolume-volume(material),samples,uncertainty:(material.kind==='turning'?Math.max(material.resolution,material.length/material.nz):Math.max(material.width/material.nx,material.depth/material.ny))*Math.SQRT2+h/2+0.02};
 }
 export function volume(material:Material):number {
   let result=0;

@@ -39,14 +39,14 @@ test('Полный автономный сценарий A/B: урок, конт
   await expect(page.getByText('6 / 6',{exact:true})).toBeVisible();
   const before=await page.evaluate(()=>window.academy.state());expect(before.ok).toBe(true);
   await page.getByRole('button',{name:'Редактор и симулятор',exact:true}).click();
-  await page.getByRole('button',{name:'▷ Рассчитать',exact:true}).click();
+  await page.locator('.sim-more > summary').click();await page.getByRole('button',{name:'▷ Рассчитать',exact:true}).click();await page.locator('.sim-more > summary').click();
   await expect(page.getByText('Программа выполнена.',{exact:false})).toBeVisible();
   await page.getByRole('button',{name:'Измерить',exact:true}).click();
   await expect(page.getByText('Ø на Z−15: 30.00 мм',{exact:false})).toBeVisible();
   await page.evaluate(()=>window.scrollTo(0,0));
   await page.screenshot({path:'test-results/turning-material.png',fullPage:true});
   await page.getByRole('button',{name:'Фрезерование',exact:true}).click();
-  await page.getByRole('button',{name:'▷ Рассчитать',exact:true}).click();
+  await page.locator('.sim-more > summary').click();await page.getByRole('button',{name:'▷ Рассчитать',exact:true}).click();await page.locator('.sim-more > summary').click();
   await expect(page.getByText('Программа выполнена.',{exact:false})).toBeVisible();
   await page.getByRole('button',{name:'Измерить',exact:true}).click();
   await expect(page.getByText('Глубина: 3.00 мм',{exact:false})).toBeVisible();
@@ -68,9 +68,9 @@ test('Полный автономный сценарий A/B: урок, конт
   const after=await page.evaluate(()=>window.academy.state());
   expect(after.ok&&before.ok&&after.value.installationHash===before.value.installationHash).toBe(true);
   await page.getByRole('button',{name:'Редактор и симулятор',exact:true}).click();
-  await page.getByLabel('Практическое задание').selectOption('turn-face');
+  await page.locator('.project-drawer > summary').click();await page.getByLabel('Практическое задание').selectOption('turn-face');
   await page.getByRole('button',{name:'Загрузить пример решения'}).click();
-  await page.getByRole('button',{name:'▷ Рассчитать',exact:true}).click();
+  await page.locator('.sim-more > summary').click();await page.getByRole('button',{name:'▷ Рассчитать',exact:true}).click();await page.locator('.sim-more > summary').click();
   await expect(page.getByText('Оценка: 100/100',{exact:false})).toBeVisible();
   await page.getByRole('button',{name:'Сохранить проект *',exact:true}).click();
   await page.getByRole('button',{name:'Переключить тему'}).click();

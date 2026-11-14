@@ -34,12 +34,19 @@ try {
   const rejected=await page.evaluate(token=>window.academy.licenseImport(token),vector.token);
   if(rejected.ok)throw new Error('Release доверяет публичному тестовому ключу.');
   await page.getByRole('button',{name:'Редактор и симулятор',exact:true}).click();
-  await page.getByRole('button',{name:'▷ Рассчитать',exact:true}).click();
+  await page.locator('.sim-more > summary').click();await page.getByRole('button',{name:'▷ Рассчитать',exact:true}).click();await page.locator('.sim-more > summary').click();
   await expect(page.getByText('Программа выполнена.',{exact:false})).toBeVisible();
   await page.getByRole('button',{name:'Измерить',exact:true}).click();
   await expect(page.getByText('Ø на Z−15: 30.00 мм',{exact:false})).toBeVisible();
+  const projectFile=path.join(directory,'Приёмка.fcncproject');
+  await app.evaluate(({dialog},file)=>{dialog.showSaveDialog=async()=>({canceled:false,filePath:file});},projectFile);
+  await page.locator('.project-drawer > summary').click();await page.getByRole('button',{name:'Экспорт проекта…',exact:true}).click();
+  const project=JSON.parse(await readFile(projectFile,'utf8'));
+  const graded=await page.evaluate(p=>window.academy.practiceSubmit({exerciseId:'turn-shaft',project:p}),project);
+  if(!graded.ok||graded.value.grade.score!==100||!graded.value.grade.geometry.passed)throw new Error('Упакованный Worker не проверил практику.');
+  await page.locator('.project-drawer > summary').click();
   await page.evaluate(()=>window.scrollTo(0,0));await mkdir('test-results',{recursive:true});
   await page.screenshot({path:`test-results/packaged-${platform}.png`,fullPage:true});
-  const report={platform,asarFiles:files.length,development:info.development,trustKeyIds:info.trustKeyIds,privateFiles:false,testVectorTrusted:false,offlineReload:true,turningDiameter:30,runtime:state.value.runtime};
+  const report={platform,asarFiles:files.length,development:info.development,trustKeyIds:info.trustKeyIds,privateFiles:false,testVectorTrusted:false,offlineReload:true,turningDiameter:30,packagedAssessmentWorker:true,runtime:state.value.runtime};
   await writeFile('test-results/packaged-report.json',JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report,null,2));
 } finally {await app?.close();}

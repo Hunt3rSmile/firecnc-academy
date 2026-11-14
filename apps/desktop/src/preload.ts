@@ -3,6 +3,8 @@ import type {DesktopAPI,UpdateView} from '@firecnc/contracts';
 const api:DesktopAPI={
   security:Object.freeze({sandbox:process.sandboxed===true,contextIsolation:process.contextIsolated===true}),
   state:()=>ipcRenderer.invoke('state'),profile:v=>ipcRenderer.invoke('profile',v),lessonComplete:v=>ipcRenderer.invoke('lessonComplete',v),quizSubmit:v=>ipcRenderer.invoke('quizSubmit',v),settings:v=>ipcRenderer.invoke('settings',v),
+  coordinateCurrent:()=>ipcRenderer.invoke('coordinateCurrent'),coordinateStart:v=>ipcRenderer.invoke('coordinateStart',v),coordinateAnswer:v=>ipcRenderer.invoke('coordinateAnswer',v),coordinateNext:v=>ipcRenderer.invoke('coordinateNext',v),
+  practiceSubmit:v=>ipcRenderer.invoke('practiceSubmit',v),practiceHistory:()=>ipcRenderer.invoke('practiceHistory'),practiceCancel:()=>ipcRenderer.invoke('practiceCancel'),
   projectSave:v=>ipcRenderer.invoke('projectSave',v),projectImport:()=>ipcRenderer.invoke('projectImport'),projectExport:v=>ipcRenderer.invoke('projectExport',v),programOpen:()=>ipcRenderer.invoke('programOpen'),programSave:v=>ipcRenderer.invoke('programSave',v),
   authorizeSimulation:v=>ipcRenderer.invoke('authorizeSimulation',v),licenseImport:v=>ipcRenderer.invoke('licenseImport',v),licenseOpen:()=>ipcRenderer.invoke('licenseOpen'),licenseExport:()=>ipcRenderer.invoke('licenseExport'),activationRequest:()=>ipcRenderer.invoke('activationRequest'),exportResults:()=>ipcRenderer.invoke('exportResults'),backup:()=>ipcRenderer.invoke('backup'),
   updateCheck:()=>ipcRenderer.invoke('updateCheck'),updateAutomatic:v=>ipcRenderer.invoke('updateAutomatic',v),updateOpen:()=>ipcRenderer.invoke('updateOpen'),

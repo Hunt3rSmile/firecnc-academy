@@ -22,6 +22,7 @@ for(const [id,pem] of Object.entries(trusted)) {
 await mkdir('dist/desktop',{recursive:true});
 await build({entryPoints:['apps/desktop/src/main.ts'],outfile:'dist/desktop/main.cjs',bundle:true,platform:'node',format:'cjs',target:'node22',external:['electron','better-sqlite3'],define:{__TRUSTED_KEYS__:JSON.stringify(trusted),__DEVELOPMENT_TRUST__:JSON.stringify(development)}});
 await build({entryPoints:['apps/desktop/src/preload.ts'],outfile:'dist/desktop/preload.cjs',bundle:true,platform:'node',format:'cjs',target:'node22',external:['electron']});
+await build({entryPoints:['apps/desktop/src/assessment.worker.ts'],outfile:'dist/desktop/assessment.cjs',bundle:true,platform:'node',format:'cjs',target:'node22'});
 await viteBuild();
 await writeFile('dist/build-info.json',JSON.stringify({development,trustKeyIds:Object.keys(trusted)},null,2));
 console.log(`Сборка: ${development?'development':'release'}, доверенных ключей: ${Object.keys(trusted).length}.`);

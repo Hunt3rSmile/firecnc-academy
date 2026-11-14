@@ -1,5 +1,5 @@
 pkgname=firecnc-academy
-pkgver=0.2.0
+pkgver=0.3.0
 pkgrel=1
 pkgdesc='Offline CNC learning with turning, milling simulation, and signed licenses'
 arch=('x86_64')

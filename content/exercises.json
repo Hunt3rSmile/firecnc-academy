@@ -1,7 +1,7 @@
 [
   {
     "id": "turn-shaft",
-    "version": 1,
+    "version": 2,
     "kind": "turning",
     "title": "Ступенчатый вал",
     "goal": "Получите Ø30 на Z−30…0, сохраните Ø40 у крепления. Заготовка Ø40 × 60; зажим 15 мм. Резец 1, ширина 2 мм.",
@@ -38,11 +38,24 @@
       "geometry": 70,
       "safety": 30,
       "criticalCollision": true
+    },
+    "target": {
+      "kind": "turning",
+      "diameter": 40,
+      "length": 60,
+      "front": 0,
+      "regions": [
+        {
+          "from": -30,
+          "to": 0,
+          "diameter": 30
+        }
+      ]
     }
   },
   {
     "id": "turn-face",
-    "version": 1,
+    "version": 2,
     "kind": "turning",
     "title": "Торцевание на 2 мм",
     "goal": "Удалите 2 мм с торца заготовки Ø40 × 60. Новый торец Z−2, оставшаяся длина 58 мм. Резец 1; ось доступна.",
@@ -78,11 +91,18 @@
       "geometry": 70,
       "safety": 30,
       "criticalCollision": true
+    },
+    "target": {
+      "kind": "turning",
+      "diameter": 40,
+      "length": 60,
+      "front": -2,
+      "regions": []
     }
   },
   {
     "id": "turn-groove",
-    "version": 1,
+    "version": 2,
     "kind": "turning",
     "title": "Наружная канавка",
     "goal": "Получите канавку шириной 3 мм на Z−20…−17 с дном Ø32. Соседние участки должны остаться Ø40. Инструмент 2; зажим Z≤−45.",
@@ -125,11 +145,24 @@
       "geometry": 70,
       "safety": 30,
       "criticalCollision": true
+    },
+    "target": {
+      "kind": "turning",
+      "diameter": 40,
+      "length": 60,
+      "front": 0,
+      "regions": [
+        {
+          "from": -20,
+          "to": -17,
+          "diameter": 32
+        }
+      ]
     }
   },
   {
     "id": "mill-slot",
-    "version": 1,
+    "version": 2,
     "kind": "milling",
     "title": "Сквозной по длине паз",
     "goal": "На заготовке 60 × 40 × 15 получите паз вдоль X по Y20: ширина 10 мм, глубина 3 мм. Фреза Ø10; губки до Z−5.",
@@ -175,11 +208,27 @@
       "geometry": 70,
       "safety": 30,
       "criticalCollision": true
+    },
+    "target": {
+      "kind": "milling",
+      "width": 60,
+      "depth": 40,
+      "thickness": 15,
+      "regions": [
+        {
+          "left": 0,
+          "right": 60,
+          "bottom": 15,
+          "top": 25,
+          "radius": 0,
+          "depth": 3
+        }
+      ]
     }
   },
   {
     "id": "mill-face",
-    "version": 1,
+    "version": 2,
     "kind": "milling",
     "title": "Обработка плоскости",
     "goal": "Понизьте всю верхнюю поверхность 60 × 40 на 2 мм. Фреза Ø10. Перекрывайте соседние проходы; отводите инструмент выше Z0.",
@@ -267,16 +316,32 @@
       "geometry": 70,
       "safety": 30,
       "criticalCollision": true
+    },
+    "target": {
+      "kind": "milling",
+      "width": 60,
+      "depth": 40,
+      "thickness": 15,
+      "regions": [
+        {
+          "left": 0,
+          "right": 60,
+          "bottom": 0,
+          "top": 40,
+          "radius": 0,
+          "depth": 2
+        }
+      ]
     }
   },
   {
     "id": "mill-pocket",
-    "version": 1,
+    "version": 2,
     "kind": "milling",
     "title": "Прямоугольный карман",
     "goal": "Получите карман X20…40, Y10…30, глубиной 4 мм; внутренние углы R5. Фреза Ø10 с возможностью осевого врезания. Компенсация радиуса отсутствует: задаётся центр фрезы.",
     "lesson": "milling-arcs",
-    "source": "G21 G17 G90 G54\nT1 M6\nS1600 M3\nG0 X25 Y15 Z5\nG1 Z-4 F80\nG1 X35 F180\nY20\nX25\nY25\nX35\nG0 Z10\nM5\nM30",
+    "source": "G21 G17 G90 G54\nT1 M6\nS1600 M3\nG0 X25 Y15 Z5\nG1 Z-4 F80\nG1 X35 F180\nY20\nX25\nY25\nX35\nY15\nX25\nY25\nX35\nG0 Z10\nM5\nM30",
     "checks": [
       {
         "name": "Дно в центре",
@@ -324,6 +389,22 @@
       "geometry": 70,
       "safety": 30,
       "criticalCollision": true
+    },
+    "target": {
+      "kind": "milling",
+      "width": 60,
+      "depth": 40,
+      "thickness": 15,
+      "regions": [
+        {
+          "left": 20,
+          "right": 40,
+          "bottom": 10,
+          "top": 30,
+          "radius": 5,
+          "depth": 4
+        }
+      ]
     }
   }
 ]

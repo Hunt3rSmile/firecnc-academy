@@ -4,7 +4,7 @@ import path from 'node:path';
 import os from 'node:os';
 import Database from 'better-sqlite3';
 let app:ElectronApplication;
-test('Согласованная копия WAL, восстановление на копии и миграция v0 → v1',async()=>{
+test('Согласованная копия WAL, восстановление на копии и миграция v0 → v3',async()=>{
   const root=await mkdtemp(path.join(os.tmpdir(),'FireCNC-storage-'));
   const env=(directory:string):Record<string,string>=>Object.fromEntries(Object.entries({...process.env,FCNC_DATA_DIR:directory}).filter(([k,v])=>v!==undefined&&k!=='ELECTRON_RUN_AS_NODE')) as Record<string,string>;
   const launch=async(directory:string)=>{app=await _electron.launch({args:['.',...(process.platform==='linux'?['--ozone-platform=x11']:[])],env:env(directory),chromiumSandbox:true});const page=await app.firstWindow();await expect(page.getByRole('heading',{name:'От понимания — к обработке'})).toBeVisible();return page;};
@@ -25,6 +25,6 @@ test('Согласованная копия WAL, восстановление н
   await launch(legacy);
   const files=await readdir(legacy);expect(files.some(f=>f.startsWith('before-migration-'))).toBe(true);
   const migratedDB=new Database(path.join(legacy,'academy.sqlite'),{readonly:true});const migrated={version:migratedDB.pragma('user_version',{simple:true}),sentinel:migratedDB.prepare("SELECT value FROM settings WHERE key='sentinel'").get()};migratedDB.close();
-  expect(migrated).toEqual({version:1,sentinel:{value:'keep-me'}});await app.close();
+  expect(migrated).toEqual({version:3,sentinel:{value:'keep-me'}});await app.close();
 });
 test.afterEach(async({},info)=>{if(info.status!=='passed')app?.process().kill();else await app?.close().catch(()=>{});});

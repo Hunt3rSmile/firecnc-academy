@@ -1,0 +1,26 @@
+import {test,expect,_electron,type ElectronApplication} from '@playwright/test';
+import {mkdtemp} from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import {DEMO_SOURCES} from '@firecnc/contracts';
+let app:ElectronApplication;
+test('Практика: локальная независимая оценка, сохранённый разбор, новый проект и защита IPC',async()=>{
+  const directory=await mkdtemp(path.join(os.tmpdir(),'FireCNC-practice-'));
+  const env=Object.fromEntries(Object.entries({...process.env,FCNC_DATA_DIR:directory}).filter(([k,v])=>v!==undefined&&k!=='ELECTRON_RUN_AS_NODE')) as Record<string,string>;
+  const launch=async()=>{app=await _electron.launch({args:['.',...(process.platform==='linux'?['--ozone-platform=x11']:[])],env,chromiumSandbox:true});const p=await app.firstWindow();await p.setViewportSize({width:1366,height:768});await expect(p.getByRole('heading',{name:'От понимания — к обработке'})).toBeVisible();return p;};
+  let page=await launch();
+  const unsafe=await page.evaluate(source=>window.academy.authorizeSimulation({version:2,name:'Неверный зажим',kind:'turning',source,offset:{x:0,y:0,z:0},resolution:.25,setup:{kind:'turning',diameter:40,length:60,clampLength:5}}),DEMO_SOURCES.turning);
+  expect(unsafe.ok).toBe(false);if(!unsafe.ok)expect(unsafe.error).toContain('Недостаточный зажим');
+  await page.getByRole('button',{name:'Редактор и симулятор',exact:true}).click();await page.locator('.project-drawer > summary').click();
+  await page.getByLabel('Практическое задание').selectOption('turn-shaft');await page.locator('.project-drawer > summary').click();
+  await expect(page.getByRole('img',{name:'Чертёж целевой токарной детали'})).toBeVisible();
+  await page.locator('.sim-more > summary').click();await page.getByRole('button',{name:'▷ Рассчитать',exact:true}).click();await page.locator('.sim-more > summary').click();
+  await expect(page.getByText('Оценка: 100/100',{exact:false})).toBeVisible();await page.getByRole('button',{name:'Сохранить результат практики'}).click();
+  await expect(page.getByText('✓ Попытка сохранена · 100/100',{exact:true})).toBeVisible();
+  const result=await page.evaluate(()=>window.academy.practiceHistory());expect(result.ok&&result.value).toHaveLength(1);
+  if(!result.ok)throw new Error(result.error);expect(result.value[0]?.project.version).toBe(2);expect(result.value[0]?.exercise.version).toBe(2);expect(result.value[0]?.grade.geometry.passed).toBe(true);
+  await app.close();page=await launch();await page.getByRole('button',{name:'Мой прогресс',exact:true}).click();
+  await page.locator('.practice-history summary').filter({hasText:'Ступенчатый вал'}).click();await expect(page.getByText('Вся доступная форма соответствует чертежу с учётом погрешности сетки.',{exact:true})).toBeVisible();
+  await page.screenshot({path:'test-results/practice-saved-review.png',fullPage:true});await app.close();
+});
+test.afterEach(async({},info)=>{if(info.status!=='passed')app?.process().kill();else await app?.close().catch(()=>{});});

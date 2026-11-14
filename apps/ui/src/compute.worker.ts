@@ -7,7 +7,7 @@ self.onmessage=(event:MessageEvent<ComputeRequest>)=>{
   try {
     const program=compile(project.source,{kind:project.kind,offset:project.offset});
     let last=-1;
-    const simulation=simulate(program,{kind:project.kind,resolution:project.resolution,offset:project.offset,frame:frame??undefined,onProgress:n=>{const percent=Math.floor(n*10);if(percent!==last){post({type:'progress',id,progress:n});last=percent;}}});
+    const simulation=simulate(program,{kind:project.kind,resolution:project.resolution,offset:project.offset,setup:project.setup,frame:frame??undefined,onProgress:n=>{const percent=Math.floor(n*10);if(percent!==last){post({type:'progress',id,progress:n});last=percent;}}});
     post({type:'done',id,program,simulation});
   } catch(e) {post({type:'error',id,message:e instanceof Error?e.message:'Ошибка расчёта.'});}
 };
