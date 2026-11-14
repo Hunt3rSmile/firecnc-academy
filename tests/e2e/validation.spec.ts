@@ -8,7 +8,7 @@ test('IPC, аварии, 2D, откат воспроизведения, эксп
   const data=await mkdtemp(path.join(os.tmpdir(),'FireCNC-validation-'));
   const env:Record<string,string>={...(Object.fromEntries(Object.entries(process.env).filter(([,v])=>v!==undefined)) as Record<string,string>),FCNC_DATA_DIR:data};delete env.ELECTRON_RUN_AS_NODE;
   app=await _electron.launch({args:['.',...(process.platform==='linux'?['--ozone-platform=x11']:[])],env,chromiumSandbox:true});const page=await app.firstWindow();
-  page.on('dialog',d=>void d.accept());
+  page.on('dialog',d=>void d.accept().catch(()=>{}));
   await page.setViewportSize({width:1366,height:768});
   await expect(page.getByRole('heading',{name:'От понимания — к обработке'})).toBeVisible();
   await app.evaluate(({dialog})=>{dialog.showMessageBoxSync=()=>1;});

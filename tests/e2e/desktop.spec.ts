@@ -8,7 +8,7 @@ test('Полный автономный сценарий A/B: урок, конт
   const env:Record<string,string>={...(Object.fromEntries(Object.entries(process.env).filter(([,v])=>v!==undefined)) as Record<string,string>),FCNC_DATA_DIR:data};delete env.ELECTRON_RUN_AS_NODE;
   application=await _electron.launch({args:['.',...(process.platform==='linux'?['--ozone-platform=x11']:[])],env,chromiumSandbox:true});
   let page=await application.firstWindow();
-  page.on('dialog',d=>void d.accept());
+  page.on('dialog',d=>void d.accept().catch(()=>{}));
   await application.evaluate(({dialog})=>{dialog.showMessageBoxSync=()=>1;});
   await page.setViewportSize({width:1366,height:768});
   page.on('pageerror',e=>console.log('Renderer error:',e.message));
@@ -31,7 +31,7 @@ test('Полный автономный сценарий A/B: урок, конт
   await page.screenshot({path:'test-results/quiz-result.png',fullPage:true});
   await application.close();
   application=await _electron.launch({args:['.',...(process.platform==='linux'?['--ozone-platform=x11']:[])],env,chromiumSandbox:true});page=await application.firstWindow();
-  page.on('dialog',d=>void d.accept());
+  page.on('dialog',d=>void d.accept().catch(()=>{}));
   await application.evaluate(({dialog})=>{dialog.showMessageBoxSync=()=>1;});
   await page.setViewportSize({width:1366,height:768});
   await page.getByRole('button',{name:'Мой прогресс',exact:true}).click();
