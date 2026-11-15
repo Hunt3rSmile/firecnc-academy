@@ -59,7 +59,9 @@ export class Store {
         if(previous&&previous.version>=item.version){if(previous.version===item.version&&previous.document===text)continue;throw new Error('Для изменения материала увеличьте его версию: '+item.id);}
         insert.run(kind,item.id,item.version,text);
       }
-      this.teaching();this.audit('teaching-import',p.title);
+      const combined=this.teaching(),ids=[...combined.questions,...combined.exams,...combined.exercises].map(item=>item.id);
+      if(new Set(ids).size!==ids.length)throw new Error('ID уже используется другим типом учебного материала. Весь пакет отклонён.');
+      this.audit('teaching-import',p.title);
     })();
   }
   audit(action:string,detail:string):void {this.db.prepare('INSERT INTO audit(created_at,action,detail) VALUES (?,?,?)').run(Date.now(),action,detail.slice(0,300));this.db.prepare('DELETE FROM audit WHERE id NOT IN (SELECT id FROM audit ORDER BY id DESC LIMIT 2000)').run();}
@@ -107,5 +109,5 @@ export class Store {
     await this.db.backup(file);
     if(process.platform!=='win32')await chmod(file,0o600);
   }
-  close():void {this.db.close();}
+  close():void {if(this.db.open)this.db.close();}
 }

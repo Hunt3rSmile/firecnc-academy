@@ -13,8 +13,8 @@ export function CodeEditor({value,onChange,line,error,theme,onSave}:{value:strin
     const instance=monaco.editor.create(host.current!,{value,language:'firecnc',theme:theme==='dark'?'vs-dark':'vs',automaticLayout:true,editContext:false,minimap:{enabled:false},fontSize:14,lineHeight:24,scrollBeyondLastLine:false,tabSize:2,wordWrap:'off',padding:{top:16},accessibilitySupport:'on',ariaLabel:'Редактор программы ЧПУ',renderLineHighlight:'all'});
     editor.current=instance;decorations.current=instance.createDecorationsCollection();
     const listener=instance.onDidChangeModelContent(()=>{if(!programmatic.current)change.current(instance.getValue());});
-    instance.addCommand(monaco.KeyMod.CtrlCmd|monaco.KeyCode.KeyS,()=>save.current());
-    return ()=>{listener.dispose();const model=instance.getModel();instance.dispose();model?.dispose();};
+    const saveAction=instance.addAction({id:'firecnc.save',label:'Сохранить учебный проект',keybindings:[monaco.KeyMod.CtrlCmd|monaco.KeyCode.KeyS],run:()=>save.current()});
+    return ()=>{saveAction.dispose();listener.dispose();decorations.current?.clear();const model=instance.getModel();instance.dispose();model?.dispose();editor.current=null;decorations.current=null;};
   },[]);
   useEffect(()=>{if(editor.current&&editor.current.getValue()!==value){programmatic.current=true;editor.current.setValue(value);programmatic.current=false;}},[value]);
   useEffect(()=>{monaco.editor.setTheme(theme==='dark'?'vs-dark':'vs');},[theme]);

@@ -5,6 +5,7 @@ import type {MeasurementAttempt,InstrumentKind} from '@firecnc/learning';
 import type {ExamDefinition,ExamView,ExamAnswer} from '@firecnc/learning';
 import type {TeachingPackage,Exercise} from '@firecnc/learning';
 import type {WorkshopInput,WorkshopState} from '@firecnc/learning';
+import type {CAMDocument,GeneratedCAM,verifyGeneratedCAM} from '@firecnc/cam';
 import type {assess} from '@firecnc/learning';
 import type {GeometryTarget} from '../../learning/src/geometry-grade';
 import {defaultSetup,validateSetup} from '@firecnc/simulation';
@@ -38,6 +39,8 @@ export interface ExamStartOptions {definitionId:string;seed?:number;count?:numbe
 export interface ExamCatalog {definitions:ExamDefinition[];topics:{id:string;title:string;course:'turning'|'milling'}[]}
 export interface ExamHistoryItem {id:string;title:string;createdAt:number;status:ExamView['status'];score:number|null;passed:boolean|null}
 export interface OnlineLicenseView {endpoint:string;activated:boolean;expiresAt:number|null;busy:boolean;protectedStorage:boolean;message:string}
+export interface CAMResult {project:CNCProject;target:GeneratedCAM['target'];note:string;validation:ReturnType<typeof verifyGeneratedCAM>}
+export interface CAMState {document:CAMDocument;result:CAMResult|null}
 export interface DesktopAPI {
   readonly security:{readonly sandbox:boolean;readonly contextIsolation:boolean};
   state():Promise<Result<AppState>>;
@@ -59,6 +62,11 @@ export interface DesktopAPI {
   workshopAdvance(value:{id:string;kind:MachineKind;input:WorkshopInput}):Promise<Result<WorkshopState>>;
   workshopBack(kind:MachineKind):Promise<Result<WorkshopState>>;
   workshopProject(kind:MachineKind):Promise<Result<AppState>>;
+  camCurrent():Promise<Result<CAMState|null>>;
+  camSave(document:CAMDocument):Promise<Result<void>>;
+  camGenerate(document:CAMDocument):Promise<Result<CAMResult>>;
+  camCancel():Promise<Result<void>>;
+  camOpen():Promise<Result<AppState>>;
   lessonCheckStart(id:string):Promise<Result<ExamView>>;
   lessonComplete(id:string):Promise<Result<AppState>>;
   quizSubmit(answers:Record<string,string[]>):Promise<Result<AppState>>;
@@ -101,6 +109,8 @@ export interface DesktopAPI {
   activationRequest():Promise<Result<boolean>>;
   exportResults():Promise<Result<boolean>>;
   backup():Promise<Result<boolean>>;
+  restoreBackup():Promise<Result<boolean>>;
+  diagnosticsExport():Promise<Result<boolean>>;
   updateCheck():Promise<Result<UpdateView>>;
   updateAutomatic(value:boolean):Promise<Result<UpdateView>>;
   updateOpen():Promise<Result<boolean>>;

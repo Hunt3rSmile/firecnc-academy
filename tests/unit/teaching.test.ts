@@ -2,8 +2,19 @@ import {describe,it,expect} from 'vitest';
 import {validateTeachingPackage,mergeTeachingPackages,createExam,examBank,exerciseSchema} from '@firecnc/learning';
 import {hashPassword,checkPassword,passwordKey} from '../../apps/desktop/src/password';
 import raw from '../../content/exercises.json' with {type:'json'};
+import {Store} from '../../apps/desktop/src/store';
+import {mkdtemp,rm} from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 const fixture=()=>({format:'firecnc-teaching',version:1,title:'Проверяемый учебный пакет',questions:[{...examBank[0]!,id:'custom-question-one',version:1}],exams:[],exercises:[{...raw[0]!,id:'custom-exercise-one',version:1}]});
 describe('Преподаватель: пароль и учебные пакеты',()=>{
+  it('конфликт ID с прежним материалом отклоняет всю транзакцию',async()=>{
+    const root=await mkdtemp(path.join(os.tmpdir(),'FireCNC-package-rollback-')),store=await Store.open(root);
+    try{const first=validateTeachingPackage({...fixture(),exercises:[]});store.importTeaching(first);const before=store.teaching();
+      const next=validateTeachingPackage({...fixture(),questions:[{...examBank[0],id:'custom-new-question'}],exercises:[{...raw[0],id:first.questions[0]!.id}]});
+      expect(()=>store.importTeaching(next)).toThrow('ID');expect(store.teaching()).toEqual(before);
+    }finally{store.close();await rm(root,{recursive:true,force:true});}
+  });
   it('scrypt совпадает с независимым вектором Python hashlib',async()=>{
     const key=await passwordKey('Преподаватель-2026',Buffer.from(Array.from({length:32},(_,i)=>i)));
     expect(key.toString('hex')).toBe('bc44fb726fc6f0bc7f9630925e6af5bfa70357441ac097e0569a271fda403cf0aadb78b6cb6f09604aac975d962c7c95a6b97c9fab1fc10ca00f854f7868a124');

@@ -3,6 +3,8 @@ import {mkdtemp,readFile,stat,mkdir,writeFile} from 'node:fs/promises';
 import {listPackage,extractFile} from '@electron/asar';
 import path from 'node:path';
 import os from 'node:os';
+import {randomUUID} from 'node:crypto';
+import Database from 'better-sqlite3';
 const platform=process.platform;
 const root=path.resolve(platform==='win32'?'release/win-unpacked':'release/linux-unpacked');
 const executablePath=path.join(root,platform==='win32'?'FireCNC Academy.exe':'firecnc-academy');
@@ -44,9 +46,22 @@ try {
   const project=JSON.parse(await readFile(projectFile,'utf8'));
   const graded=await page.evaluate(p=>window.academy.practiceSubmit({exerciseId:'turn-shaft',project:p}),project);
   if(!graded.ok||graded.value.grade.score!==100||!graded.value.grade.geometry.passed)throw new Error('Упакованный Worker не проверил практику.');
+  const runWorker=(name,input)=>app.evaluate(async({app},value)=>{
+    const {Worker}=process.getBuiltinModule('worker_threads'),path=process.getBuiltinModule('path');
+    return await new Promise((resolve,reject)=>{const worker=new Worker(path.join(app.getAppPath(),'dist','desktop',value.name+'.cjs'),{workerData:value.input,resourceLimits:{maxOldGenerationSizeMb:128}});const timer=setTimeout(()=>{void worker.terminate();reject(new Error('Packaged worker timeout.'));},30000);worker.once('message',message=>{clearTimeout(timer);void worker.terminate();resolve(message);});worker.once('error',error=>{clearTimeout(timer);reject(error);});});
+  },{name,input});
+  const corners=[{x:10,y:10},{x:50,y:10},{x:50,y:30},{x:10,y:30}],cam=await runWorker('cam',{version:1,operation:'mill-pocket',contour:{closed:true,segments:corners.map((from,i)=>({type:'line',from,to:corners[(i+1)%4]}))},depth:3,tool:1,feed:150,rpm:1600,safeHeight:5});
+  if(!cam.ok||!cam.value.validation.passed||Math.abs(cam.value.validation.analyticVolume-(800-(4-Math.PI)*25)*3)>1e-7)throw new Error('Packaged CAM worker failed analytic check.');
+  const question={id:'custom-packaged-question',version:1,course:'turning',lessonId:'turning-axes',type:'numeric',prompt:'Какой диаметр задаёт учебная координата X30?',expected:30,tolerance:.001,unit:'мм',explanation:'В токарном профиле FireCNC координата X задаётся диаметром, поэтому X30 означает диаметр 30 мм.',mistake:'Различайте физический радиус и диаметральную координату X.',profile:'firecnc-din-v1',sourceIds:['firecnc-profile']};
+  const teaching=await runWorker('teaching',{format:'firecnc-teaching',version:1,title:'Проверка пакета внутри ASAR',questions:[question],exams:[],exercises:[]});if(!teaching.ok||teaching.value.questions.length!==1)throw new Error('Packaged teaching worker failed.');
+  const deniedExam=await page.evaluate(()=>window.academy.examStart({definitionId:'turning-intro'}));if(deniedExam.ok)throw new Error('Release demo granted an exam.');
+  // Existing local results remain exportable without a license; populate only the isolated acceptance DB.
+  const id=randomUUID(),created=Date.now(),definition={id:'packaged-report',version:1,title:'Проверка PDF в пакете',course:'turning',count:1,durationSeconds:60,passingScore:70,topics:['turning-axes'],hints:false,maxAttempts:1},exam={version:1,id,definition,seed:1,createdAt:created,deadline:created+60000,lastSeenAt:created+1000,finishedAt:created+1000,status:'finished',currentIndex:0,questions:[question],answers:{[question.id]:'30'},timeByQuestion:{[question.id]:1000},hintsUsed:[]};
+  const db=new Database(path.join(directory,'academy.sqlite'));db.prepare('INSERT INTO exams VALUES (?,?,?,?,?,?)').run(id,state.value.profile.id,created,definition.id,'finished',JSON.stringify(exam));db.close();
+  const pdfFile=path.join(directory,'Проверка отчёта.pdf');await app.evaluate(({dialog},file)=>{dialog.showSaveDialog=async()=>({canceled:false,filePath:file});},pdfFile);const printed=await page.evaluate(id=>window.academy.examExportPdf(id),id);if(!printed.ok||!printed.value||(await readFile(pdfFile)).subarray(0,5).toString()!=='%PDF-')throw new Error('Packaged PDF/font export failed.');
   await page.locator('.project-drawer > summary').click();
   await page.evaluate(()=>window.scrollTo(0,0));await mkdir('test-results',{recursive:true});
   await page.screenshot({path:`test-results/packaged-${platform}.png`,fullPage:true});
-  const report={platform,asarFiles:files.length,development:info.development,trustKeyIds:info.trustKeyIds,privateFiles:false,testVectorTrusted:false,offlineReload:true,turningDiameter:30,packagedAssessmentWorker:true,runtime:state.value.runtime};
+  const report={platform,asarFiles:files.length,development:info.development,trustKeyIds:info.trustKeyIds,privateFiles:false,testVectorTrusted:false,offlineReload:true,turningDiameter:30,packagedAssessmentWorker:true,packagedCAMWorker:true,packagedTeachingWorker:true,packagedPdfAndFont:true,runtime:state.value.runtime};
   await writeFile('test-results/packaged-report.json',JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report,null,2));
 } finally {await app?.close();}

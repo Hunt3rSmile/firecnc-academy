@@ -25,6 +25,7 @@ await build({entryPoints:['apps/desktop/src/main.ts'],outfile:'dist/desktop/main
 await build({entryPoints:['apps/desktop/src/preload.ts'],outfile:'dist/desktop/preload.cjs',bundle:true,platform:'node',format:'cjs',target:'node22',external:['electron']});
 await build({entryPoints:['apps/desktop/src/assessment.worker.ts'],outfile:'dist/desktop/assessment.cjs',bundle:true,platform:'node',format:'cjs',target:'node22'});
 await build({entryPoints:['apps/desktop/src/teaching.worker.ts'],outfile:'dist/desktop/teaching.cjs',bundle:true,platform:'node',format:'cjs',target:'node22'});
+await build({entryPoints:['apps/desktop/src/cam.worker.ts'],outfile:'dist/desktop/cam.cjs',bundle:true,platform:'node',format:'cjs',target:'node22'});
 await viteBuild();
 await writeFile('dist/build-info.json',JSON.stringify({development,trustKeyIds:Object.keys(trusted)},null,2));
 console.log(`Сборка: ${development?'development':'release'}, доверенных ключей: ${Object.keys(trusted).length}.`);

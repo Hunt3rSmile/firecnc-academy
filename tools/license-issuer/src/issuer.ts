@@ -8,7 +8,7 @@ export function newKeys(passphrase?:string):{privatePem:string;publicPem:string;
   return {privatePem,publicPem,keyId:keyId(pair.publicKey)};
 }
 export function issueLicense(privatePem:string,options:{edition:Edition;modules?:LicenseModule[];customer:string;days?:number;binding?:string;now?:number;passphrase?:string}):{token:string;payload:LicensePayload} {
-  if(options.edition==='lab')throw new Error('Выпуск Lab пока недоступен: учёт мест относится к этапу E. Офлайн используйте Student или Teacher.');
+  if(options.edition==='lab')throw new Error('Офлайн Lab не выпускается: учёт мест выполняет сервер активации. Для Lab используйте короткий ключ сервера; офлайн доступны Student и Teacher.');
   const privateKey:KeyObject=createPrivateKey({key:privatePem,format:'pem',passphrase:options.passphrase});
   if(privateKey.asymmetricKeyType!=='ed25519')throw new Error('Нужен закрытый ключ Ed25519 в PKCS#8.');
   const now=options.now??Math.floor(Date.now()/1000);

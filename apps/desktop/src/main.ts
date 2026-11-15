@@ -1,5 +1,5 @@
 import {app,BrowserWindow,ipcMain,protocol,net,dialog,shell,safeStorage,type IpcMainInvokeEvent} from 'electron';
-import {readFile,writeFile,stat,rename} from 'node:fs/promises';
+import {readFile,writeFile,stat,rename,unlink} from 'node:fs/promises';
 import path from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {z} from 'zod';
@@ -7,7 +7,7 @@ import {randomBytes,randomUUID} from 'node:crypto';
 import {Worker} from 'node:worker_threads';
 import {Store} from './store';
 import {installationHash,verifyLicense,strictJSON,type TrustStore} from '@firecnc/licensing';
-import {projectSchema,DEMO_SOURCES,type LicenseView,type LicenseModule,type AppState,type Result,type CNCProject,type PracticeAttempt,type TeacherStatus} from '@firecnc/contracts';
+import {projectSchema,DEMO_SOURCES,type LicenseView,type LicenseModule,type AppState,type Result,type CNCProject,type PracticeAttempt,type TeacherStatus,type CAMResult,type CAMState} from '@firecnc/contracts';
 import {lessons,introQuestions,createCoordinateAttempt,answerCoordinate,advanceCoordinate,exercises,instrumentKind,measurementMode,createMeasurementAttempt,answerMeasurement,advanceMeasurement,examBank,examDefinitions,examView,tickExam,createExam,answerExam,navigateExam,finishExam,useExamHint,examAnswerSchema,type CoordinateAttempt} from '@firecnc/learning';
 import {UpdateChecker} from './updates';
 import {isDefaultSetup} from '@firecnc/simulation';
@@ -16,6 +16,10 @@ import {hashPassword,checkPassword} from './password';
 import {OnlineLicensing} from './online-license';
 import {teachingPackageSchema,mergeTeachingPackages,type TeachingPackage,type Exercise} from '@firecnc/learning';
 import {workshopInputSchema,workshopStateSchema,createWorkshop,advanceWorkshop,workshopErrors,type WorkshopState} from '@firecnc/learning';
+import {camDocumentSchema,type CAMDocument} from '@firecnc/cam';
+import {targetSchema} from '../../../packages/learning/src/geometry-grade';
+import {prepareRestore} from './restore';
+import {redactDiagnostics} from './diagnostics';
 import releaseSource from '../../../config/release.json';
 declare const __TRUSTED_KEYS__:TrustStore;
 declare const __DEVELOPMENT_TRUST__:boolean;
@@ -29,6 +33,21 @@ let updates:UpdateChecker;
 let online:OnlineLicensing,renewTimer:ReturnType<typeof setInterval>|undefined;
 let gradingWorker:Worker|null=null;
 let teachingWorker:Worker|null=null,teacherUntil=0,unlockFailures=0,unlockAfter=0;
+let camWorker:Worker|null=null;
+let restoring=false;
+function automaticRenew():void {if(!restoring)void online.automaticRenew();}
+const camKey=()=>`cam:${store.profileId}`;
+function readCAM():CAMState|null {
+  const raw=store.get(camKey());if(!raw)return null;const value=JSON.parse(raw) as CAMState;
+  const document=camDocumentSchema.parse(value.document);if(value.result){projectSchema.parse(value.result.project);targetSchema.parse(value.result.target);}
+  return {document,result:value.result??null};
+}
+async function calculateCAM(document:CAMDocument):Promise<CAMResult> {
+  if(camWorker)throw new Error('Расчёт CAM уже выполняется.');
+  const worker=new Worker(path.join(__dirname,'cam.cjs'),{workerData:document,resourceLimits:{maxOldGenerationSizeMb:128}});camWorker=worker;
+  try{return await new Promise((resolve,reject)=>{const timeout=setTimeout(()=>{void worker.terminate();reject(new Error('Расчёт CAM превысил 30 секунд. Упростите контур.'));},30000);worker.once('message',(r:Result<CAMResult>)=>{clearTimeout(timeout);r.ok?resolve(r.value):reject(new Error(r.error));});worker.once('error',e=>{clearTimeout(timeout);reject(e);});worker.once('exit',()=>{clearTimeout(timeout);reject(new Error('Расчёт CAM отменён.'));});});}
+  finally{await worker.terminate();if(camWorker===worker)camWorker=null;}
+}
 const localContent=()=>mergeTeachingPackages([store.teaching()]);
 function teacherStatus():TeacherStatus {const l=licenseView();return {configured:!!store.get('teacherPassword'),unlocked:performance.now()<teacherUntil,mayWrite:performance.now()<teacherUntil&&l.status==='active'&&l.modules.includes('teacher')};}
 function requireTeacher(write=false):void {if(performance.now()>=teacherUntil)throw new Error('Войдите в режим преподавателя. Сеанс действует 30 минут.');if(write)requireModule('teacher');}
@@ -38,7 +57,7 @@ async function validatePackage(value:unknown):Promise<TeachingPackage> {
   if(teachingWorker)throw new Error('Проверка учебного пакета уже выполняется.');
   const worker=new Worker(path.join(__dirname,'teaching.cjs'),{workerData:value,resourceLimits:{maxOldGenerationSizeMb:128}});teachingWorker=worker;
   try{return await new Promise((resolve,reject)=>{const timeout=setTimeout(()=>{void worker.terminate();reject(new Error('Пакет превысил лимит проверки 30 секунд.'));},30000);worker.once('message',(r:Result<TeachingPackage>)=>{clearTimeout(timeout);r.ok?resolve(r.value):reject(new Error(r.error));});worker.once('error',e=>{clearTimeout(timeout);reject(e);});worker.once('exit',()=>{clearTimeout(timeout);reject(new Error('Проверка пакета остановлена.'));});});}
-  finally{teachingWorker=null;await worker.terminate();}
+  finally{await worker.terminate();teachingWorker=null;}
 }
 const URL_ROOT='firecnc://app/index.html';
 const now=()=>Math.floor(Date.now()/1000);
@@ -72,7 +91,7 @@ async function assessProject(exercise:Exercise,project:CNCProject):Promise<Pract
     worker.once('message',(r:Result<PracticeAttempt>)=>{clearTimeout(timeout);if(r.ok)resolve(r.value);else reject(new Error(r.error));});
     worker.once('error',error=>{clearTimeout(timeout);reject(error);});
     worker.once('exit',()=>{clearTimeout(timeout);reject(new Error('Проверка практики отменена.'));});
-  });}finally{if(gradingWorker===worker)gradingWorker=null;await worker.terminate();}
+  });}finally{await worker.terminate();if(gradingWorker===worker)gradingWorker=null;}
 }
 function readExam(id?:string){const a=store.exam(id);if(!a){if(id)throw new Error('Попытка не найдена в вашем профиле.');return null;}const next=tickExam(a,Date.now());store.saveExam(next);return next;}
 function workshopKey(kind:'turning'|'milling'):string {return `workshop:${store.profileId}:${kind}`;}
@@ -86,8 +105,8 @@ function sender(event:IpcMainInvokeEvent):void {
 }
 function handle<T,U>(channel:string,schema:z.ZodType<T>,operation:(arg:T)=>Promise<U>|U):void {
   ipcMain.handle(channel,async(event,arg):Promise<Result<U>>=>{
-    try {sender(event);return {ok:true,value:await operation(schema.parse(arg))};}
-    catch(e) {return {ok:false,error:e instanceof z.ZodError?(e.issues.filter(issue=>issue.code==='custom').map(issue=>issue.message).join(' ')||'Параметры команды не соответствуют допустимому формату.'):e instanceof Error?e.message:'Операция не выполнена.'};}
+    try {sender(event);if(restoring)throw new Error('Восстанавливаются данные. Приложение будет перезапущено.');return {ok:true,value:await operation(schema.parse(arg))};}
+    catch(e) {try{store?.audit('ipc-error',channel);}catch{}return {ok:false,error:e instanceof z.ZodError?(e.issues.filter(issue=>issue.code==='custom').map(issue=>issue.message).join(' ')||'Параметры команды не соответствуют допустимому формату.'):e instanceof Error?e.message:'Операция не выполнена.'};}
   });
 }
 async function boundedRead(file:string,max:number):Promise<string> {
@@ -138,7 +157,7 @@ async function boot():Promise<void> {
   handle('updateOpen',empty,async()=>{const url=updates.releaseURL();if(!url)throw new Error('Нет доступного нового выпуска. Сначала проверьте обновления.');await shell.openExternal(url);return true;});
   handle('profile',z.string().trim().min(1).max(80),name=>{store.rename(name);return state();});
   handle('profiles',empty,()=>store.profiles());
-  handle('profileSelect',z.string().uuid(),id=>{if(gradingWorker||teachingWorker)throw new Error('Дождитесь завершения расчёта.');store.selectProfile(id);return state();});
+  handle('profileSelect',z.string().uuid(),id=>{if(gradingWorker||teachingWorker||camWorker)throw new Error('Дождитесь завершения расчёта.');store.selectProfile(id);return state();});
   handle('teacherStatus',empty,teacherStatus);
   handle('teacherConfigure',z.string().min(12).max(128),async password=>{requireModule('teacher');if(store.get('teacherPassword'))throw new Error('Пароль уже задан. Войдите с существующим паролем.');const record=await hashPassword(password);requireModule('teacher');if(store.get('teacherPassword'))throw new Error('Пароль уже задан.');store.set('teacherPassword',JSON.stringify(record));teacherUntil=performance.now()+1800000;store.audit('teacher-setup','Пароль настроен.');return teacherStatus();});
   handle('teacherUnlock',z.string().max(128),async password=>{
@@ -153,6 +172,11 @@ async function boot():Promise<void> {
   handle('teacherImport',empty,async()=>{requireTeacher(true);const r=await dialog.showOpenDialog(win,{properties:['openFile'],filters:[{name:'Учебный пакет FireCNC',extensions:['fcnccontent','json']}]});if(r.canceled)return null;const p=await validatePackage(strictJSON(await boundedRead(r.filePaths[0]!,2000000),{maxDepth:15,maxNodes:50000}));requireTeacher(true);store.importTeaching(p);return teacherData();});
   handle('teacherExport',empty,()=>{requireTeacher();return save(JSON.stringify(store.teaching(),null,2),'fcnccontent','Экспорт собственных материалов');});
   handle('practiceCatalog',empty,()=>localContent().exercises);
+  handle('camCurrent',empty,readCAM);
+  handle('camSave',camDocumentSchema,document=>{requireModule('cadcam');const previous=readCAM();store.set(camKey(),JSON.stringify({document,result:previous&&JSON.stringify(previous.document)===JSON.stringify(document)?previous.result:null}));});
+  handle('camGenerate',camDocumentSchema,async document=>{const kind=document.operation.startsWith('turn')?'turning':'milling';requireModule('cadcam');requireModule(kind);const result=await calculateCAM(document);requireModule('cadcam');requireModule(kind);store.set(camKey(),JSON.stringify({document,result}));return result;});
+  handle('camCancel',empty,()=>{void camWorker?.terminate();});
+  handle('camOpen',empty,()=>{requireModule('cadcam');const current=readCAM();if(!current?.result)throw new Error('Сначала постройте и проверьте программу.');requireModule(current.result.project.kind);store.saveProject(projectSchema.parse(current.result.project));return state();});
   handle('workshopCurrent',z.enum(['turning','milling']),readWorkshop);
   handle('workshopStart',z.enum(['turning','milling']),kind=>{requireModule(kind);const state=createWorkshop(kind,randomUUID());store.set(workshopKey(kind),JSON.stringify(state));return state;});
   handle('workshopAdvance',z.strictObject({id:z.string().uuid(),kind:z.enum(['turning','milling']),input:workshopInputSchema}),value=>{requireModule(value.kind);const current=readWorkshop(value.kind);if(!current||current.id!==value.id)throw new Error('Сценарий наладки изменился. Откройте его заново.');const next=advanceWorkshop(current,value.input);store.set(workshopKey(value.kind),JSON.stringify(next));return next;});
@@ -239,11 +263,31 @@ async function boot():Promise<void> {
   handle('activationRequest',empty,()=>save(JSON.stringify({version:1,productId:'firecnc-academy',installationHash:installationHash(store.get('installationId')!)},null,2),'json','Сохранить запрос для владельца'));
   handle('exportResults',empty,()=>save(JSON.stringify({version:2,profile:store.profile(),completed:store.completed(),attempts:store.attempts(true),coordinateAttempts:store.coordinateHistory(true),practiceAttempts:store.practiceHistory(true),measurementAttempts:store.measurementHistory(true),examAttempts:store.examHistory(true).map(examView)},null,2),'json','Экспортировать результаты'));
   handle('backup',empty,async()=>{const r=await dialog.showSaveDialog(win,{title:'Согласованная резервная копия SQLite',defaultPath:'FireCNC-backup.sqlite'});if(r.canceled||!r.filePath)return false;await store.backup(r.filePath);return true;});
+  handle('diagnosticsExport',empty,()=>{
+    const license=licenseView(),report={format:'firecnc-diagnostics',version:1,createdAt:new Date().toISOString(),appVersion:app.getVersion(),platform:process.platform,arch:process.arch,runtime:{electron:process.versions.electron,node:process.versions.node,abi:process.versions.modules},databaseVersion:store.db.pragma('user_version',{simple:true}),profileCount:store.profiles().length,license:{status:license.status,edition:license.edition,modules:license.modules,expiresAt:license.expiresAt,bound:license.bound},updates:{status:updates.snapshot().status},recentEvents:store.db.prepare('SELECT created_at,action FROM audit ORDER BY id DESC LIMIT 100').all()};
+    return save(JSON.stringify(redactDiagnostics(report),null,2),'json','Экспорт диагностики без секретов');
+  });
+  handle('restoreBackup',empty,async()=>{
+    if(gradingWorker||teachingWorker||camWorker||online.view().busy)throw new Error('Дождитесь завершения расчёта или активации перед восстановлением.');
+    const r=await dialog.showOpenDialog(win,{title:'Восстановить резервную копию FireCNC',properties:['openFile'],filters:[{name:'SQLite backup',extensions:['sqlite']}]});if(r.canceled)return false;
+    const file=r.filePaths[0]!,directory=app.getPath('userData'),database=path.join(directory,'academy.sqlite');
+    const normalize=(v:string)=>process.platform==='win32'?path.resolve(v).toLowerCase():path.resolve(v);if(normalize(file)===normalize(database))throw new Error('Выберите отдельную резервную копию, а не открытую рабочую БД.');
+    const confirmed=await dialog.showMessageBox(win,{type:'warning',title:'Восстановление данных',message:'Заменить локальные данные выбранной резервной копией?',detail:'Файл: '+file+'\nТекущие данные сначала сохранятся в before-restore-*.sqlite в пользовательском каталоге. Приложение будет перезапущено. Более новые изменения останутся в этой защитной копии.',buttons:['Отмена','Сохранить текущие и восстановить'],defaultId:0,cancelId:0});if(confirmed.response!==1)return false;
+    if(gradingWorker||teachingWorker||camWorker||online.view().busy)throw new Error('Дождитесь завершения текущей операции и повторите восстановление.');
+    restoring=true;let candidate:string|undefined,closed=false;
+    try{
+      candidate=await prepareRestore(file,directory);await store.backup(path.join(directory,`before-restore-${Date.now()}-${randomUUID()}.sqlite`));
+      clearInterval(renewTimer);store.db.pragma('wal_checkpoint(TRUNCATE)');store.close();closed=true;
+      await unlink(database+'-wal').catch(()=>{});await unlink(database+'-shm').catch(()=>{});await rename(candidate,database);candidate=undefined;
+      updates.stop();app.relaunch();setTimeout(()=>app.exit(0),150);return true;
+    }catch(error){if(candidate)await unlink(candidate).catch(()=>{});if(closed){store=await Store.open(directory);renewTimer=setInterval(automaticRenew,6*60*60*1000);renewTimer.unref();}restoring=false;throw error;}
+  });
   await createWindow();
   updates.start();
-  void online.automaticRenew();renewTimer=setInterval(()=>void online.automaticRenew(),6*60*60*1000);renewTimer.unref();
+  automaticRenew();renewTimer=setInterval(automaticRenew,6*60*60*1000);renewTimer.unref();
   app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)void createWindow();});
 }
 app.on('window-all-closed',()=>{if(process.platform!=='darwin')app.quit();});
-app.on('will-quit',()=>{updates?.stop();clearInterval(renewTimer);void gradingWorker?.terminate();void teachingWorker?.terminate();store?.close();});
-void boot().catch(e=>{dialog.showErrorBox('FireCNC Academy',e instanceof Error?e.message:'Ошибка запуска.');app.quit();});
+app.on('will-quit',()=>{updates?.stop();clearInterval(renewTimer);void gradingWorker?.terminate();void teachingWorker?.terminate();void camWorker?.terminate();store?.close();});
+if(!app.requestSingleInstanceLock())app.quit();else void boot().catch(e=>{dialog.showErrorBox('FireCNC Academy',e instanceof Error?e.message:'Ошибка запуска.');app.quit();});
+app.on('second-instance',()=>{if(win&&!win.isDestroyed()){if(win.isMinimized())win.restore();win.focus();}});

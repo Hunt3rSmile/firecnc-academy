@@ -38,7 +38,8 @@ export class OnlineLicensing {
   async activate(endpoint:string,key:string):Promise<OnlineLicenseView> {
     await this.exclusive(async()=>{
       endpoint=activationEndpoint(endpoint);const normalized=normalizeActivationKey(key),hash=secretHash('activation-key',normalized);let r=this.record();
-      if(r?.activationId&&(r.endpoint!==endpoint||r.keyHash!==hash))throw new Error('Сначала деактивируйте прежнюю серверную лицензию. Офлайн-файл можно импортировать независимо от неё.');
+      const now=this.options.clock?.()??Math.floor(Date.now()/1000);
+      if(r?.activationId&&(r.endpoint!==endpoint||r.keyHash!==hash)&&(r.expiresAt===null||r.expiresAt>now))throw new Error('Прежний автономный lease ещё действует. Сначала деактивируйте его либо дождитесь срока. Офлайн-файл можно импортировать независимо от него.');
       if(!r||r.endpoint!==endpoint||r.keyHash!==hash){const secret=randomBytes(32).toString('base64url'),encrypted=this.options.protect.available();r={version:1,endpoint,keyHash:hash,activationId:null,expiresAt:null,encrypted,secret:encrypted?this.options.protect.encrypt(secret).toString('base64'):secret};this.save(r);}
       const value=await this.call(endpoint,'activate',{key:normalized,installationId:this.options.installationId,secret:this.secret(r)});this.accept(value,r);
     });return this.view();

@@ -17,6 +17,7 @@ export const payloadSchema=z.strictObject({
   if(p.notBefore<p.issuedAt||p.expiresAt!==null&&p.expiresAt<=p.notBefore) ctx.addIssue({code:'custom',message:'Неверный диапазон времени.'});
   if(p.kind==='lease'&&(!p.activationId||!p.binding||p.expiresAt===null)) ctx.addIssue({code:'custom',message:'Для lease нужны срок, привязка и activationId.'});
   if(p.kind==='offline'&&p.activationId!==undefined) ctx.addIssue({code:'custom',message:'activationId допустим только для lease.'});
+  if(p.edition==='lab'&&p.kind!=='lease')ctx.addIssue({code:'custom',message:'Lab требует серверный lease с учётом установок.'});
 });
 export type LicensePayload=z.infer<typeof payloadSchema>;
 export type Verification = {ok:true;payload:LicensePayload}|{ok:false;code:string;message:string;payload?:LicensePayload};

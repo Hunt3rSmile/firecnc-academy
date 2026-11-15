@@ -46,7 +46,9 @@
     "server:list": "tsx services/activation-server/src/cli.ts list",
     "server:admin": "tsx services/activation-server/src/cli.ts",
     "server:backup": "tsx services/activation-server/src/cli.ts backup",
-    "license:activation": "tsx services/activation-server/src/cli.ts create"
+    "license:activation": "tsx services/activation-server/src/cli.ts create",
+    "test:wrapper": "node scripts/test-wrapper.mjs",
+    "benchmark:desktop": "node scripts/benchmark-desktop.mjs"
   },
   "dependencies": {
     "better-sqlite3": "13.2.0",

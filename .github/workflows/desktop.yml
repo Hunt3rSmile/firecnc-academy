@@ -65,8 +65,12 @@ jobs:
         run: npm run test:pack
       - if: matrix.platform == 'windows'
         run: npm run test:installer
+      - if: matrix.platform == 'windows'
+        run: npm run test:wrapper
       - if: matrix.platform == 'linux'
         run: xvfb-run -a npm run test:pack
+      - if: matrix.platform == 'linux'
+        run: xvfb-run -a npm run test:wrapper
       - run: node scripts/release-artifacts.mjs ${{ matrix.platform }}
       - uses: actions/upload-artifact@v7.0.2
         with:

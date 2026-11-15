@@ -7,8 +7,9 @@ const pair=newKeys(),trust={[pair.keyId]:pair.publicPem},now=1800000000;
 const make=()=>issueLicense(pair.privatePem,{edition:'teacher',customer:'Тест',days:1,now});
 const signed=(data:unknown)=>{const p=Buffer.from(typeof data==='string'?data:JSON.stringify(data)).toString('base64url');return `FCNC1.${p}.${sign(null,Buffer.concat([DOMAIN,Buffer.from(p)]),createPrivateKey(pair.privatePem)).toString('base64url')}`;};
 describe('Ed25519 / FCNC1',()=>{
-  it('не выдаёт Lab до реализации реального учёта мест',()=>{
+  it('офлайн CLI не выдаёт Lab; подписанный Lab требует серверный lease',()=>{
     expect(()=>issueLicense(pair.privatePem,{edition:'lab',customer:'Лаборатория',now})).toThrow('учёт мест');
+    expect(verifyLicense(signed({...make().payload,edition:'lab'}),trust,{now})).toMatchObject({ok:false,code:'SCHEMA'});
   });
   it('соответствует опубликованному вектору и не принимает его без явного доверия',()=>{
     expect(verifyLicense(vector.token,{[vector.keyId]:vector.publicKey},{now:vector.now})).toEqual({ok:true,payload:vector.payload});

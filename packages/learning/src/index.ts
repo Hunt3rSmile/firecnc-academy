@@ -4,7 +4,7 @@ import questionsData from '../../../content/questions.json' with {type:'json'};
 import {exercises} from './exercises';
 import {examBank} from './exams';
 const lessonSchema=z.strictObject({id:z.string().min(1),version:z.number().int().positive(),course:z.enum(['turning','milling']),title:z.string().min(5),minutes:z.number().positive(),objective:z.string().min(20),diagram:z.enum(['turning','milling','feed','modal','arc']),body:z.array(z.string().min(60)).min(2),mistake:z.string().min(30),exercise:z.string().min(15),solution:z.string().min(20),questions:z.array(z.string()).min(1),sources:z.array(z.string()).min(1)});
-const questionSchema=z.strictObject({id:z.string().min(1),version:z.number().int().positive(),lessonId:z.string(),prompt:z.string().min(15),options:z.array(z.string().min(1)).min(2).max(8),correct:z.array(z.number().int().nonnegative()).min(1),explanation:z.string().min(30),mistake:z.string().min(20)}).refine(q=>new Set(q.correct).size===q.correct.length&&q.correct.every(i=>i<q.options.length));
+export const questionSchema=z.strictObject({id:z.string().min(1),version:z.number().int().positive(),lessonId:z.string(),prompt:z.string().min(15),options:z.array(z.string().min(1)).min(2).max(8),correct:z.array(z.number().int().nonnegative()).min(1),explanation:z.string().min(30),mistake:z.string().min(20)}).refine(q=>new Set(q.correct).size===q.correct.length&&q.correct.every(i=>i<q.options.length));
 export const lessons=z.array(lessonSchema).parse(lessonsData);
 export const questions=z.array(questionSchema).parse(questionsData);
 export type Lesson=typeof lessons[number];
