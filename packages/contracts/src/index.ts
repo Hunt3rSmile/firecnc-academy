@@ -8,6 +8,7 @@ import type {WorkshopInput,WorkshopState} from '@firecnc/learning';
 import type {CAMDocument,GeneratedCAM,verifyGeneratedCAM} from '@firecnc/cam';
 import type {assess} from '@firecnc/learning';
 import type {GeometryTarget} from '../../learning/src/geometry-grade';
+import type {ClassroomCatalog,ClassroomProgress,ClassroomAttempt} from '@firecnc/learning';
 import {defaultSetup,validateSetup} from '@firecnc/simulation';
 export const MODULES = ['theory','turning','milling','measurements','exams','teacher','cadcam'] as const;
 export type LicenseModule = typeof MODULES[number];
@@ -33,7 +34,7 @@ export interface LicenseView {status:'demo'|'active'|'expired'|'invalid'|'clock'
 export interface AttemptView {id:string;createdAt:number;score:number;total:number;answers:Record<string,string[]>;questions:unknown[]}
 export interface PracticeAttempt {id:string;createdAt:number;exercise:{id:string;version:number;title:string;lesson:string;target:GeometryTarget};project:CNCProject;grade:ReturnType<typeof assess>;diagnostic:{line:number;message:string;fix:string}|null;statistics:{removedVolume:number;seconds:number;completed:number;frames:number;uncertainty:number}}
 export interface UpdateView {status:'idle'|'checking'|'current'|'available'|'error';currentVersion:string;latestVersion:string|null;releaseUrl:string|null;releaseNotes:string;checkedAt:number|null;automatic:boolean;packaged:boolean;message:string}
-export interface AppState {profile:{id:string;name:string};completed:string[];attempts:AttemptView[];project:CNCProject|null;settings:{theme:'dark'|'light';split:number};license:LicenseView;updates:UpdateView;installationHash:string;version:string;runtime:{electron:string;node:string;abi:string}}
+export interface AppState {profile:{id:string;name:string};completed:string[];attempts:AttemptView[];project:CNCProject|null;settings:{theme:'dark'|'light';split:number};license:LicenseView;updates:UpdateView;installationHash:string;version:string;runtime:{electron:string;node:string;abi:string};classroom:{attempts:number;completed:number;total:number;latestScore:number|null}}
 export type Result<T> = {ok:true;value:T}|{ok:false;error:string};
 export interface ExamStartOptions {definitionId:string;seed?:number;count?:number;durationSeconds?:number;passingScore?:number;topics?:string[];hints?:boolean}
 export interface ExamCatalog {definitions:ExamDefinition[];topics:{id:string;title:string;course:'turning'|'milling'}[]}
@@ -41,9 +42,29 @@ export interface ExamHistoryItem {id:string;title:string;createdAt:number;status
 export interface OnlineLicenseView {endpoint:string;activated:boolean;expiresAt:number|null;busy:boolean;protectedStorage:boolean;message:string}
 export interface CAMResult {project:CNCProject;target:GeneratedCAM['target'];note:string;validation:ReturnType<typeof verifyGeneratedCAM>}
 export interface CAMState {document:CAMDocument;result:CAMResult|null}
+export const tutorModelSchema=z.enum(['deepseek-flash','deepseek-v4-pro']);
+export type TutorModel=z.infer<typeof tutorModelSchema>;
+export interface TutorStatus {configured:boolean;model:TutorModel;storage:'encrypted'|'session'|'none';busy:boolean;message:string}
+export const tutorConfigureSchema=z.strictObject({apiKey:z.string().trim().regex(/^sk-[A-Za-z0-9_-]{16,200}$/).optional(),model:tutorModelSchema});
+export const tutorAskSchema=z.strictObject({
+  messages:z.array(z.strictObject({role:z.enum(['user','assistant']),content:z.string().trim().min(1).max(6000)})).min(1).max(12),
+  taskId:z.string().max(100).optional(),source:z.string().max(16000).optional(),diagnostic:z.string().max(2000).optional()
+}).refine(v=>v.messages.at(-1)?.role==='user'&&v.messages.reduce((n,m)=>n+m.content.length,0)<=24000,{message:'Завершите диалог вопросом; сократите историю до 24 000 символов.'});
+export type TutorAsk=z.infer<typeof tutorAskSchema>;
+export interface TutorReply {content:string;model:string;tokens:number|null}
 export interface DesktopAPI {
   readonly security:{readonly sandbox:boolean;readonly contextIsolation:boolean};
   state():Promise<Result<AppState>>;
+  classroomCatalog():Promise<Result<ClassroomCatalog>>;
+  classroomProgress():Promise<Result<ClassroomProgress>>;
+  classroomDraft(value:{taskId:string;answer:string}):Promise<Result<void>>;
+  classroomSubmit(value:{taskId:string;answer:string}):Promise<Result<ClassroomAttempt>>;
+  tutorStatus():Promise<Result<TutorStatus>>;
+  tutorConfigure(value:z.infer<typeof tutorConfigureSchema>):Promise<Result<TutorStatus>>;
+  tutorClear():Promise<Result<TutorStatus>>;
+  tutorCheck():Promise<Result<TutorStatus>>;
+  tutorAsk(value:TutorAsk):Promise<Result<TutorReply>>;
+  tutorCancel():Promise<Result<void>>;
   profile(name:string):Promise<Result<AppState>>;
   profiles():Promise<Result<{id:string;name:string}[]>>;
   profileSelect(id:string):Promise<Result<AppState>>;
@@ -71,7 +92,7 @@ export interface DesktopAPI {
   lessonComplete(id:string):Promise<Result<AppState>>;
   quizSubmit(answers:Record<string,string[]>):Promise<Result<AppState>>;
   coordinateCurrent():Promise<Result<CoordinateAttempt|null>>;
-  coordinateStart(value:{kind:MachineKind;seed?:number}):Promise<Result<CoordinateAttempt>>;
+  coordinateStart(value:{kind:MachineKind;seed?:number;mode?:'G90'|'G91'|'mixed'}):Promise<Result<CoordinateAttempt>>;
   coordinateAnswer(value:{id:string;values:Record<string,string>}):Promise<Result<CoordinateAttempt>>;
   coordinateNext(id:string):Promise<Result<CoordinateAttempt>>;
   practiceSubmit(value:{exerciseId:string;project:CNCProjectInput}):Promise<Result<PracticeAttempt>>;

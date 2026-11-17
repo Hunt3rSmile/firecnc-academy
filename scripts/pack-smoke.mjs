@@ -35,6 +35,16 @@ try {
   const vector=JSON.parse(await readFile('tests/fixtures/public-license-vector.json','utf8'));
   const rejected=await page.evaluate(token=>window.academy.licenseImport(token),vector.token);
   if(rejected.ok)throw new Error('Release доверяет публичному тестовому ключу.');
+  const classroom=await page.evaluate(()=>window.academy.classroomCatalog());
+  if(!classroom.ok||classroom.value.tasks.length!==14||classroom.value.photos.length!==60)throw new Error('В пакете отсутствуют письменные задачи или материалы занятий.');
+  await page.getByRole('button',{name:'Задания по занятиям',exact:true}).click();
+  await page.getByLabel('Решение задания').fill('G54\nG92 S3000\nG96 S200 F0.25 T1 M4');
+  await page.getByRole('button',{name:'Проверить решение',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Задание выполнено',exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Материалы с занятий · 60',exact:true}).click();
+  await page.locator('.classroom-photo-card').first().click();
+  await expect.poll(()=>page.locator('.photo-scroll img').evaluate(img=>img.naturalWidth)).toBeGreaterThan(500);
+  await page.getByRole('button',{name:'Закрыть фотографию',exact:true}).click();
   await page.getByRole('button',{name:'Редактор и симулятор',exact:true}).click();
   await page.locator('.sim-more > summary').click();await page.getByRole('button',{name:'▷ Рассчитать',exact:true}).click();await page.locator('.sim-more > summary').click();
   await expect(page.getByText('Программа выполнена.',{exact:false})).toBeVisible();
@@ -62,6 +72,6 @@ try {
   await page.locator('.project-drawer > summary').click();
   await page.evaluate(()=>window.scrollTo(0,0));await mkdir('test-results',{recursive:true});
   await page.screenshot({path:`test-results/packaged-${platform}.png`,fullPage:true});
-  const report={platform,asarFiles:files.length,development:info.development,trustKeyIds:info.trustKeyIds,privateFiles:false,testVectorTrusted:false,offlineReload:true,turningDiameter:30,packagedAssessmentWorker:true,packagedCAMWorker:true,packagedTeachingWorker:true,packagedPdfAndFont:true,runtime:state.value.runtime};
+  const report={platform,asarFiles:files.length,development:info.development,trustKeyIds:info.trustKeyIds,privateFiles:false,testVectorTrusted:false,offlineReload:true,writtenPALTasks:14,offlineClassroomPhotos:60,turningDiameter:30,packagedAssessmentWorker:true,packagedCAMWorker:true,packagedTeachingWorker:true,packagedPdfAndFont:true,runtime:state.value.runtime};
   await writeFile('test-results/packaged-report.json',JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report,null,2));
 } finally {await app?.close();}

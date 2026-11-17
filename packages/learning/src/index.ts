@@ -32,3 +32,4 @@ export * from './measurements';
 export * from './exams';
 export * from './teaching';
 export * from './workshop';
+export * from './classroom';

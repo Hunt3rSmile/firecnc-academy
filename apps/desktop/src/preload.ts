@@ -1,6 +1,8 @@
 import {contextBridge,ipcRenderer} from 'electron';
 import type {DesktopAPI,UpdateView} from '@firecnc/contracts';
 const api:DesktopAPI={
+  classroomCatalog:()=>ipcRenderer.invoke('classroomCatalog'),classroomProgress:()=>ipcRenderer.invoke('classroomProgress'),classroomDraft:v=>ipcRenderer.invoke('classroomDraft',v),classroomSubmit:v=>ipcRenderer.invoke('classroomSubmit',v),
+  tutorStatus:()=>ipcRenderer.invoke('tutorStatus'),tutorConfigure:v=>ipcRenderer.invoke('tutorConfigure',v),tutorClear:()=>ipcRenderer.invoke('tutorClear'),tutorCheck:()=>ipcRenderer.invoke('tutorCheck'),tutorAsk:v=>ipcRenderer.invoke('tutorAsk',v),tutorCancel:()=>ipcRenderer.invoke('tutorCancel'),
   security:Object.freeze({sandbox:process.sandboxed===true,contextIsolation:process.contextIsolated===true}),
   onlineStatus:()=>ipcRenderer.invoke('onlineStatus'),onlineActivate:v=>ipcRenderer.invoke('onlineActivate',v),onlineRenew:()=>ipcRenderer.invoke('onlineRenew'),onlineDeactivate:()=>ipcRenderer.invoke('onlineDeactivate'),
   workshopCurrent:v=>ipcRenderer.invoke('workshopCurrent',v),workshopStart:v=>ipcRenderer.invoke('workshopStart',v),workshopAdvance:v=>ipcRenderer.invoke('workshopAdvance',v),workshopBack:v=>ipcRenderer.invoke('workshopBack',v),workshopProject:v=>ipcRenderer.invoke('workshopProject',v),

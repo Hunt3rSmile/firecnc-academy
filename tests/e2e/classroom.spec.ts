@@ -1,0 +1,64 @@
+import {test,expect,_electron,type ElectronApplication} from '@playwright/test';
+import {mkdtemp,readFile} from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+
+let app:ElectronApplication;
+test('Письменные PAL-задания: ошибки по кадрам, фото, история и черновики после перезапуска',async()=>{
+  const directory=await mkdtemp(path.join(os.tmpdir(),'FireCNC-classroom-'));
+  const env=Object.fromEntries(Object.entries({...process.env,FCNC_DATA_DIR:directory}).filter(([k,v])=>v!==undefined&&k!=='ELECTRON_RUN_AS_NODE')) as Record<string,string>;
+  const launch=async()=>{app=await _electron.launch({args:['.',...(process.platform==='linux'?['--ozone-platform=x11']:[])],env,chromiumSandbox:true});const page=await app.firstWindow();await page.setViewportSize({width:1366,height:900});await expect(page.getByRole('heading',{name:'От понимания — к обработке'})).toBeVisible();return page;};
+  let page=await launch();
+  await page.getByRole('button',{name:'Задания по занятиям',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Решайте как на занятии'})).toBeVisible();
+  await expect(page.getByRole('radio')).toHaveCount(0);await expect(page.locator('.classroom-task-list>button')).toHaveCount(14);
+  const wrong='G54\nG92 S3000\nG97 S200 F0.25 T1 M3';
+  await page.getByLabel('Решение задания').fill(wrong);await page.getByRole('button',{name:'Проверить решение',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Есть что исправить',exact:true})).toBeVisible();await expect(page.locator('.classroom-checks .failed')).toHaveCount(2);
+  await page.getByRole('button',{name:/Рассчитайте обороты сверла/}).click();await page.getByLabel('Решение задания').fill('n=954,93');await page.getByRole('button',{name:'Проверить решение',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Задание выполнено',exact:true})).toBeVisible();
+  await page.getByRole('button',{name:/Напишите начало программы PAL/}).click();await expect(page.getByLabel('Решение задания')).toHaveValue(wrong);
+  await page.screenshot({path:'test-results/classroom-written.png',fullPage:true});
+  await page.getByRole('button',{name:'Материалы с занятий · 60',exact:true}).click();await expect(page.locator('.classroom-photo-card')).toHaveCount(60);
+  await page.locator('.classroom-photo-card').first().click();await expect(page.getByRole('dialog')).toBeVisible();await expect.poll(()=>page.locator('.photo-scroll img').evaluate((img:HTMLImageElement)=>img.naturalWidth)).toBeGreaterThan(500);
+  await page.screenshot({path:'test-results/classroom-photo.png',fullPage:true});await page.keyboard.press('Escape');await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.getByLabel('Поиск по фотографиям').fill('канавк');const found=await page.locator('.classroom-photo-card').count();expect(found).toBeGreaterThan(0);expect(found).toBeLessThan(60);
+  await page.setViewportSize({width:800,height:720});await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth)).toBeLessThanOrEqual(1);
+  await page.getByRole('button',{name:'Практические задания',exact:true}).click();await expect(page.getByLabel('Решение задания')).toHaveValue(wrong);
+  await app.close();page=await launch();await page.getByRole('button',{name:'Задания по занятиям',exact:true}).click();await expect(page.getByLabel('Решение задания')).toHaveValue(wrong);
+  const progress=await page.evaluate(()=>window.academy.classroomProgress());expect(progress.ok&&progress.value.attempts.length).toBe(2);expect(progress.ok&&progress.value.completed).toContain('pal-drill-rpm');
+  await page.getByRole('button',{name:'Мой прогресс',exact:true}).click();await expect(page.locator('.classroom-progress-history .attempt-row')).toHaveCount(2);
+  await page.locator('.classroom-progress-history .attempt-row').first().getByRole('button',{name:'Разбор',exact:true}).click();await expect(page.getByRole('heading',{name:'Задание выполнено',exact:true})).toBeVisible();
+  const token=(await readFile('.local/development.fcnclic','utf8')).trim();
+  const isolated=await page.evaluate(async token=>{
+    const before=await window.academy.state();if(!before.ok)return false;
+    if(!(await window.academy.licenseImport(token)).ok)return false;
+    if(!(await window.academy.teacherConfigure('ClassroomTeacher-2026')).ok)return false;
+    if(!(await window.academy.teacherCreateProfile('Другой учащийся')).ok)return false;
+    const profiles=await window.academy.profiles();if(!profiles.ok)return false;
+    const other=profiles.value.find(p=>p.id!==before.value.profile.id);if(!other)return false;
+    if(!(await window.academy.profileSelect(other.id)).ok)return false;
+    const blank=await window.academy.classroomProgress();await window.academy.profileSelect(before.value.profile.id);
+    const restored=await window.academy.classroomProgress();
+    return blank.ok&&blank.value.attempts.length===0&&Object.keys(blank.value.drafts).length===0&&restored.ok&&restored.value.attempts.length===2;
+  },token);expect(isolated).toBe(true);
+});
+
+test('Настройки DeepSeek: отдельный ключ, безопасное хранение и доступный помощник',async()=>{
+  const directory=await mkdtemp(path.join(os.tmpdir(),'FireCNC-tutor-'));
+  const env=Object.fromEntries(Object.entries({...process.env,FCNC_DATA_DIR:directory}).filter(([k,v])=>v!==undefined&&k!=='ELECTRON_RUN_AS_NODE')) as Record<string,string>;
+  app=await _electron.launch({args:['.',...(process.platform==='linux'?['--ozone-platform=x11']:[])],env,chromiumSandbox:true});const page=await app.firstWindow();await page.setViewportSize({width:1366,height:900});
+  await page.getByRole('button',{name:'Задания по занятиям',exact:true}).click();await page.getByRole('button',{name:'Настроить DeepSeek →',exact:true}).click();
+  const key='sk-ui_test_0123456789abcdef0123456789';
+  await page.getByLabel('API-ключ DeepSeek',{exact:true}).fill(key);await page.getByRole('button',{name:'Сохранить DeepSeek',exact:true}).click();
+  await expect(page.getByLabel('API-ключ DeepSeek',{exact:true})).toHaveValue('');await expect(page.getByText('Ключ добавлен',{exact:true})).toBeVisible();
+  const status=await page.evaluate(()=>window.academy.tutorStatus());expect(status.ok&&status.value.configured).toBe(true);expect(JSON.stringify(status)).not.toContain(key);
+  const database=await readFile(path.join(directory,'academy.sqlite')),wal=await readFile(path.join(directory,'academy.sqlite-wal')).catch(()=>Buffer.alloc(0));expect(Buffer.concat([database,wal]).includes(Buffer.from(key))).toBe(false);
+  await page.getByRole('button',{name:'Задания по занятиям',exact:true}).click();await expect(page.getByLabel('Вопрос DeepSeek')).toBeVisible();await expect(page.getByRole('button',{name:'Где ошибка в моём решении?',exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Настройки и лицензия',exact:true}).click();await page.getByRole('button',{name:'Удалить ключ',exact:true}).click();await expect(page.getByText('Не подключён',{exact:true})).toBeVisible();
+  await page.getByLabel('API-ключ DeepSeek',{exact:true}).fill(key);await page.getByRole('button',{name:'Сохранить DeepSeek',exact:true}).click();await expect(page.getByLabel('API-ключ DeepSeek',{exact:true})).toHaveValue('');
+  await app.close();app=await _electron.launch({args:['.',...(process.platform==='linux'?['--ozone-platform=x11']:[])],env,chromiumSandbox:true});const reopened=await app.firstWindow();
+  await expect(reopened.getByRole('heading',{name:'От понимания — к обработке'})).toBeVisible();const persisted=await reopened.evaluate(()=>window.academy.tutorStatus());
+  expect(persisted.ok&&persisted.value.configured).toBe(status.ok&&status.value.storage==='encrypted');
+});
+test.afterEach(async()=>{await app?.close().catch(()=>{});});

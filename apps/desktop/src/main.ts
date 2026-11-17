@@ -20,9 +20,14 @@ import {camDocumentSchema,type CAMDocument} from '@firecnc/cam';
 import {targetSchema} from '../../../packages/learning/src/geometry-grade';
 import {prepareRestore} from './restore';
 import {redactDiagnostics} from './diagnostics';
+import {DeepSeekTutor} from './tutor';
+import {tutorConfigureSchema,tutorAskSchema} from '@firecnc/contracts';
+import {classroomCatalog,classroomTasks,assessClassroom,classroomContext,classroomProgressSchema,type ClassroomProgress} from '@firecnc/learning';
 import releaseSource from '../../../config/release.json';
 declare const __TRUSTED_KEYS__:TrustStore;
 declare const __DEVELOPMENT_TRUST__:boolean;
+// Chromium does not auto-detect Hyprland's Secret Service. Honour an explicit user override.
+if(process.platform==='linux'&&!app.commandLine.hasSwitch('password-store')&&/(^|:)Hyprland($|:)/i.test(process.env.XDG_CURRENT_DESKTOP??''))app.commandLine.appendSwitch('password-store','gnome-libsecret');
 app.setName('FireCNC Academy');
 protocol.registerSchemesAsPrivileged([{scheme:'firecnc',privileges:{standard:true,secure:true,supportFetchAPI:true,corsEnabled:true,stream:true}}]);
 // This override selects only a data directory for development / integration tests; it cannot grant modules.
@@ -31,6 +36,7 @@ let win:BrowserWindow;
 let store:Store;
 let updates:UpdateChecker;
 let online:OnlineLicensing,renewTimer:ReturnType<typeof setInterval>|undefined;
+let tutor:DeepSeekTutor;
 let gradingWorker:Worker|null=null;
 let teachingWorker:Worker|null=null,teacherUntil=0,unlockFailures=0,unlockAfter=0;
 let camWorker:Worker|null=null;
@@ -49,6 +55,10 @@ async function calculateCAM(document:CAMDocument):Promise<CAMResult> {
   finally{await worker.terminate();if(camWorker===worker)camWorker=null;}
 }
 const localContent=()=>mergeTeachingPackages([store.teaching()]);
+const classroomKey=()=>`classroom:${store.profileId}`;
+function classroomProgress():ClassroomProgress {const raw=store.get(classroomKey());return raw?classroomProgressSchema.parse(JSON.parse(raw)):{drafts:{},attempts:[],completed:[]};}
+function classroomSummary():AppState['classroom'] {const p=classroomProgress();return {attempts:p.attempts.length,completed:p.completed.length,total:classroomTasks.length,latestScore:p.attempts[0]?.score??null};}
+function classroomDraft(value:{taskId:string;answer:string}):void {if(!classroomTasks.some(t=>t.id===value.taskId))throw new Error('Задание не найдено.');const progress=classroomProgress();progress.drafts[value.taskId]=value.answer;store.set(classroomKey(),JSON.stringify(progress));}
 function teacherStatus():TeacherStatus {const l=licenseView();return {configured:!!store.get('teacherPassword'),unlocked:performance.now()<teacherUntil,mayWrite:performance.now()<teacherUntil&&l.status==='active'&&l.modules.includes('teacher')};}
 function requireTeacher(write=false):void {if(performance.now()>=teacherUntil)throw new Error('Войдите в режим преподавателя. Сеанс действует 30 минут.');if(write)requireModule('teacher');}
 const teacherData=()=>({content:store.teaching(),profiles:store.classroom()});
@@ -98,7 +108,7 @@ function workshopKey(kind:'turning'|'milling'):string {return `workshop:${store.
 function readWorkshop(kind:'turning'|'milling'):WorkshopState|null {const raw=store.get(workshopKey(kind));return raw?workshopStateSchema.parse(strictJSON(raw,{maxDepth:8,maxNodes:200})):null;}
 function state():AppState {
   return {profile:store.profile(),completed:store.completed(),attempts:store.attempts(),project:store.project(),settings:{theme:store.get('theme')==='light'?'light':'dark',split:Math.min(75,Math.max(30,Number(store.get('split')??55)))},
-    license:licenseView(),updates:updates.snapshot(),installationHash:installationHash(store.get('installationId')!),version:app.getVersion(),runtime:{electron:process.versions.electron??'',node:process.versions.node,abi:process.versions.modules}};
+    license:licenseView(),updates:updates.snapshot(),installationHash:installationHash(store.get('installationId')!),version:app.getVersion(),runtime:{electron:process.versions.electron??'',node:process.versions.node,abi:process.versions.modules},classroom:classroomSummary()};
 }
 function sender(event:IpcMainInvokeEvent):void {
   if(event.sender!==win.webContents||event.senderFrame!==win.webContents.mainFrame||event.senderFrame.url.split('#')[0]!==URL_ROOT)throw new Error('Недопустимый отправитель команды.');
@@ -139,6 +149,7 @@ async function createWindow():Promise<void> {
 async function boot():Promise<void> {
   await app.whenReady();
   store=await Store.open(app.getPath('userData'));
+  tutor=new DeepSeekTutor({get:key=>store.get(key),set:(key,value)=>store.set(key,value),request:(url,options)=>net.fetch(url instanceof URL?url.href:url,options),protect:{available:()=>safeStorage.isEncryptionAvailable()&&(process.platform!=='linux'||safeStorage.getSelectedStorageBackend()!=='basic_text'),encrypt:text=>safeStorage.encryptString(text),decrypt:bytes=>safeStorage.decryptString(bytes)}});
   online=new OnlineLicensing({get:key=>store.get(key),set:(key,value)=>store.set(key,value),installationId:store.get('installationId')!,trust:__TRUSTED_KEYS__,request:(url,options)=>net.fetch(url instanceof URL?url.href:url,options),importToken:token=>{importLicense(token);},protect:{available:()=>safeStorage.isEncryptionAvailable()&&(process.platform!=='linux'||safeStorage.getSelectedStorageBackend()!=='basic_text'),encrypt:text=>safeStorage.encryptString(text),decrypt:bytes=>safeStorage.decryptString(bytes)}});
   updates=new UpdateChecker({version:app.getVersion(),source:releaseSource,automatic:store.get('autoCheckUpdates')!=='false',packaged:app.isPackaged,request:(url,options)=>net.fetch(url,options),onChange:value=>{if(win&&!win.isDestroyed())win.webContents.send('updates:changed',value);}});
   const uiRoot=path.resolve(__dirname,'../ui');
@@ -152,6 +163,22 @@ async function boot():Promise<void> {
   });
   const empty=z.undefined();
   handle('state',empty,()=>state());
+  handle('tutorStatus',empty,()=>tutor.view());
+  handle('tutorConfigure',tutorConfigureSchema,value=>tutor.configure(value));
+  handle('tutorClear',empty,()=>tutor.clear());
+  handle('tutorCheck',empty,()=>tutor.check());
+  handle('tutorAsk',tutorAskSchema,value=>tutor.ask(value,value.taskId?classroomContext(value.taskId,value.source??''):''));
+  handle('tutorCancel',empty,()=>tutor.cancel());
+  const classroomAnswer=z.strictObject({taskId:z.string().max(100),answer:z.string().max(16000)});
+  handle('classroomCatalog',empty,classroomCatalog);
+  handle('classroomProgress',empty,classroomProgress);
+  handle('classroomDraft',classroomAnswer,classroomDraft);
+  handle('classroomSubmit',classroomAnswer,value=>{
+    const task=classroomTasks.find(t=>t.id===value.taskId);if(!task)throw new Error('Задание не найдено.');
+    if(!value.answer.trim())throw new Error('Сначала напишите решение задания.');
+    const attempt={id:randomUUID(),createdAt:Date.now(),...assessClassroom(task,value.answer)};
+    const progress=classroomProgress();progress.drafts[value.taskId]=value.answer;progress.attempts=[attempt,...progress.attempts].slice(0,100);if(attempt.passed&&!progress.completed.includes(task.id))progress.completed.push(task.id);store.set(classroomKey(),JSON.stringify(progress));return attempt;
+  });
   handle('updateCheck',empty,()=>updates.check());
   handle('updateAutomatic',z.boolean(),value=>{store.set('autoCheckUpdates',String(value));return updates.setAutomatic(value);});
   handle('updateOpen',empty,async()=>{const url=updates.releaseURL();if(!url)throw new Error('Нет доступного нового выпуска. Сначала проверьте обновления.');await shell.openExternal(url);return true;});
@@ -186,11 +213,13 @@ async function boot():Promise<void> {
     const project=projectSchema.parse({version:2,toolSetId:'firecnc-basic-v1',name:'После учебной наладки',kind,source:DEMO_SOURCES[kind].replace(kind==='turning'?'S800':'S1600','S'+current.input.rpm),offset:current.input.offset,resolution:.25,setup:current.input.setup});store.saveProject(project);return state();
   });
   handle('coordinateCurrent',empty,()=>store.coordinate());
-  handle('coordinateStart',z.strictObject({kind:z.enum(['turning','milling']),seed:z.number().int().min(0).max(0xffffffff).optional()}),value=>{
+  handle('coordinateStart',z.strictObject({kind:z.enum(['turning','milling']),seed:z.number().int().min(0).max(0xffffffff).optional(),mode:z.enum(['G90','G91','mixed']).optional()}),value=>{
     const demo=licenseView().status==='demo';
     if(demo&&value.kind!=='turning')requireModule(value.kind);
     if(!demo)requireModule(value.kind);
-    const attempt=createCoordinateAttempt({id:randomUUID(),kind:value.kind,seed:demo?2026:value.seed??randomBytes(4).readUInt32LE(),now:Date.now(),demo});
+    const previous=store.coordinate();let seed=value.seed??randomBytes(4).readUInt32LE();
+    let attempt=createCoordinateAttempt({id:randomUUID(),kind:value.kind,seed,now:Date.now(),demo,mode:value.mode});
+    while(value.seed===undefined&&previous&&JSON.stringify(previous.points)===JSON.stringify(attempt.points)){seed=(seed+1)>>>0;attempt=createCoordinateAttempt({id:randomUUID(),kind:value.kind,seed,now:Date.now(),demo,mode:value.mode});}
     store.saveCoordinate(attempt);return attempt;
   });
   handle('coordinateAnswer',z.strictObject({id:z.string().uuid(),values:z.partialRecord(z.enum(['x','y','z']),z.string().max(32))}),value=>{
@@ -261,19 +290,19 @@ async function boot():Promise<void> {
   handle('licenseOpen',empty,async()=>{const r=await dialog.showOpenDialog(win,{properties:['openFile'],filters:[{name:'Лицензия FireCNC',extensions:['fcnclic']}]});return r.canceled?null:importLicense(await boundedRead(r.filePaths[0]!,12000));});
   handle('licenseExport',empty,()=>{const token=store.get('license');if(!token)throw new Error('Нет импортированной лицензии.');return save(token+'\n','fcnclic','Экспортировать лицензию');});
   handle('activationRequest',empty,()=>save(JSON.stringify({version:1,productId:'firecnc-academy',installationHash:installationHash(store.get('installationId')!)},null,2),'json','Сохранить запрос для владельца'));
-  handle('exportResults',empty,()=>save(JSON.stringify({version:2,profile:store.profile(),completed:store.completed(),attempts:store.attempts(true),coordinateAttempts:store.coordinateHistory(true),practiceAttempts:store.practiceHistory(true),measurementAttempts:store.measurementHistory(true),examAttempts:store.examHistory(true).map(examView)},null,2),'json','Экспортировать результаты'));
+  handle('exportResults',empty,()=>save(JSON.stringify({version:2,profile:store.profile(),completed:store.completed(),attempts:store.attempts(true),coordinateAttempts:store.coordinateHistory(true),practiceAttempts:store.practiceHistory(true),measurementAttempts:store.measurementHistory(true),examAttempts:store.examHistory(true).map(examView),classroom:classroomProgress()},null,2),'json','Экспортировать результаты'));
   handle('backup',empty,async()=>{const r=await dialog.showSaveDialog(win,{title:'Согласованная резервная копия SQLite',defaultPath:'FireCNC-backup.sqlite'});if(r.canceled||!r.filePath)return false;await store.backup(r.filePath);return true;});
   handle('diagnosticsExport',empty,()=>{
     const license=licenseView(),report={format:'firecnc-diagnostics',version:1,createdAt:new Date().toISOString(),appVersion:app.getVersion(),platform:process.platform,arch:process.arch,runtime:{electron:process.versions.electron,node:process.versions.node,abi:process.versions.modules},databaseVersion:store.db.pragma('user_version',{simple:true}),profileCount:store.profiles().length,license:{status:license.status,edition:license.edition,modules:license.modules,expiresAt:license.expiresAt,bound:license.bound},updates:{status:updates.snapshot().status},recentEvents:store.db.prepare('SELECT created_at,action FROM audit ORDER BY id DESC LIMIT 100').all()};
     return save(JSON.stringify(redactDiagnostics(report),null,2),'json','Экспорт диагностики без секретов');
   });
   handle('restoreBackup',empty,async()=>{
-    if(gradingWorker||teachingWorker||camWorker||online.view().busy)throw new Error('Дождитесь завершения расчёта или активации перед восстановлением.');
+    if(gradingWorker||teachingWorker||camWorker||online.view().busy||tutor.view().busy)throw new Error('Дождитесь завершения расчёта или активации перед восстановлением.');
     const r=await dialog.showOpenDialog(win,{title:'Восстановить резервную копию FireCNC',properties:['openFile'],filters:[{name:'SQLite backup',extensions:['sqlite']}]});if(r.canceled)return false;
     const file=r.filePaths[0]!,directory=app.getPath('userData'),database=path.join(directory,'academy.sqlite');
     const normalize=(v:string)=>process.platform==='win32'?path.resolve(v).toLowerCase():path.resolve(v);if(normalize(file)===normalize(database))throw new Error('Выберите отдельную резервную копию, а не открытую рабочую БД.');
     const confirmed=await dialog.showMessageBox(win,{type:'warning',title:'Восстановление данных',message:'Заменить локальные данные выбранной резервной копией?',detail:'Файл: '+file+'\nТекущие данные сначала сохранятся в before-restore-*.sqlite в пользовательском каталоге. Приложение будет перезапущено. Более новые изменения останутся в этой защитной копии.',buttons:['Отмена','Сохранить текущие и восстановить'],defaultId:0,cancelId:0});if(confirmed.response!==1)return false;
-    if(gradingWorker||teachingWorker||camWorker||online.view().busy)throw new Error('Дождитесь завершения текущей операции и повторите восстановление.');
+    if(gradingWorker||teachingWorker||camWorker||online.view().busy||tutor.view().busy)throw new Error('Дождитесь завершения текущей операции и повторите восстановление.');
     restoring=true;let candidate:string|undefined,closed=false;
     try{
       candidate=await prepareRestore(file,directory);await store.backup(path.join(directory,`before-restore-${Date.now()}-${randomUUID()}.sqlite`));
@@ -288,6 +317,6 @@ async function boot():Promise<void> {
   app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)void createWindow();});
 }
 app.on('window-all-closed',()=>{if(process.platform!=='darwin')app.quit();});
-app.on('will-quit',()=>{updates?.stop();clearInterval(renewTimer);void gradingWorker?.terminate();void teachingWorker?.terminate();void camWorker?.terminate();store?.close();});
+app.on('will-quit',()=>{tutor?.cancel();updates?.stop();clearInterval(renewTimer);void gradingWorker?.terminate();void teachingWorker?.terminate();void camWorker?.terminate();store?.close();});
 if(!app.requestSingleInstanceLock())app.quit();else void boot().catch(e=>{dialog.showErrorBox('FireCNC Academy',e instanceof Error?e.message:'Ошибка запуска.');app.quit();});
 app.on('second-instance',()=>{if(win&&!win.isDestroyed()){if(win.isMinimized())win.restore();win.focus();}});
